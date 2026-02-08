@@ -1,0 +1,225 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}{% if edit_user and edit_user.id %}แก้ไข{% else %}เพิ่ม{% endif %}ผู้ใช้{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% if edit_user and edit_user.id %}แก้ไข{% else %}เพิ่ม{% endif %}ผู้ใช้</h1>
+    <form method="post" class="form" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Basic User Info -->
+        <div class="form-group">
+            <label for="username">ชื่อผู้ใช้ <span style="color: red;">*</span></label>
+            <input type="text" id="username" name="username" value="{{ edit_user.username|default:'' }}" {% if edit_user and edit_user.id %}readonly{% else %}required{% endif %}>
+            {% if edit_user and edit_user.id %}<small style="color: #666;">ไม่สามารถแก้ไขชื่อผู้ใช้ได้</small>{% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="email">อีเมล <span style="color: red;">*</span></label>
+            <input type="email" id="email" name="email" value="{{ edit_user.email|default:'' }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">รหัสผ่าน {% if edit_user and edit_user.id %}<small>(เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)</small>{% else %}<span style="color: red;">*</span>{% endif %}</label>
+            <input type="password" id="password" name="password" {% if not edit_user or not edit_user.id %}required{% endif %}>
+        </div>
+        
+        <div class="form-group">
+            <label for="first_name">ชื่อ</label>
+            <input type="text" id="first_name" name="first_name" value="{{ edit_user.first_name|default:'' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="last_name">นามสกุล</label>
+            <input type="text" id="last_name" name="last_name" value="{{ edit_user.last_name|default:'' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">เบอร์โทรศัพท์</label>
+            <input type="text" id="phone" name="phone" value="{{ edit_user.phone|default:'' }}">
+        </div>
+        
+        <div class="form-group">
+            <label for="role">บทบาท <span style="color: red;">*</span></label>
+            <select id="role" name="role" required onchange="toggleRoleFields()">
+                <option value="student" {% if not edit_user or not edit_user.id or edit_user.role == 'student' %}selected{% endif %}>นักศึกษา</option>
+                <option value="teacher" {% if edit_user and edit_user.id and edit_user.role == 'teacher' %}selected{% endif %}>อาจารย์</option>
+                <option value="admin" {% if edit_user and edit_user.id and edit_user.role == 'admin' %}selected{% endif %}>ผู้ดูแลระบบ</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="profile_picture">รูปโปรไฟล์</label>
+            <input type="file" id="profile_picture" name="profile_picture" accept="image/*">
+            {% if edit_user and edit_user.id and edit_user.profile_picture %}
+            <div style="margin-top: 0.5rem;">
+                <img src="{{ edit_user.profile_picture.url }}" alt="Profile" style="max-width: 150px; border-radius: 8px;">
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Student Fields -->
+        <div id="student-fields" style="display: {% if not edit_user or not edit_user.id or edit_user.role == 'student' %}block{% else %}none{% endif %};">
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">ข้อมูลนักศึกษา</h3>
+            <div class="form-group">
+                <label for="student_id">รหัสนักศึกษา <span style="color: red;">*</span></label>
+                <input type="text" id="student_id" name="student_id" value="{% if edit_user and edit_user.id and edit_user.student_profile %}{{ edit_user.student_profile.student_id }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="section_id">กลุ่มเรียน</label>
+                <select id="section_id" name="section_id" onchange="updateCourseInfo()">
+                    <option value="">-- เลือกกลุ่มเรียน --</option>
+                    {% for section in sections %}
+                        <option value="{{ section.id }}" 
+                            data-course-id="{{ section.course.id }}"
+                            data-course-code="{{ section.course.course_code }}"
+                            data-course-name="{{ section.course.course_name }}"
+                            {% if edit_user and edit_user.id and edit_user.enrollments.first and edit_user.enrollments.first.section.id == section.id %}selected{% endif %}>
+                            {{ section.course.course_code }} - {{ section.course.course_name }} (กลุ่ม {{ section.section_number }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="university_email">อีเมลมหาวิทยาลัย</label>
+                <input type="email" id="university_email" name="university_email" value="{% if edit_user and edit_user.id and edit_user.student_profile %}{{ edit_user.student_profile.university_email }}{% endif %}" placeholder="เช่น student@rmuti.ac.th">
+            </div>
+            <div class="form-group">
+                <label for="course_name">วิชา</label>
+                <input type="text" id="course_name" name="course_name" readonly style="background-color: #f5f5f5;" value="{% if edit_user and edit_user.id and edit_user.enrollments.first %}{{ edit_user.enrollments.first.section.course.course_name }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="course_code">รหัสวิชา</label>
+                <input type="text" id="course_code" name="course_code" readonly style="background-color: #f5f5f5;" value="{% if edit_user and edit_user.id and edit_user.enrollments.first %}{{ edit_user.enrollments.first.section.course.course_code }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="major">สาขา</label>
+                <input type="text" id="major" name="major" value="{% if edit_user and edit_user.id and edit_user.student_profile %}{{ edit_user.student_profile.major }}{% endif %}">
+            </div>
+        </div>
+        
+        <!-- Teacher Fields -->
+        <div id="teacher-fields" style="display: {% if edit_user and edit_user.id and edit_user.role == 'teacher' %}block{% else %}none{% endif %};">
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">ข้อมูลอาจารย์</h3>
+            <div class="form-group">
+                <label for="employee_id">รหัสอาจารย์</label>
+                <input type="text" id="employee_id" name="employee_id" value="{% if edit_user and edit_user.id and edit_user.teacher_profile %}{{ edit_user.teacher_profile.employee_id }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="faculty">คณะ</label>
+                <input type="text" id="faculty" name="faculty" value="{% if edit_user and edit_user.id and edit_user.teacher_profile %}{{ edit_user.teacher_profile.faculty }}{% endif %}" placeholder="เช่น คณะวิศวกรรมศาสตร์">
+            </div>
+            <div class="form-group">
+                <label for="teacher_university_email">อีเมลมหาวิทยาลัย</label>
+                <input type="email" id="teacher_university_email" name="teacher_university_email" value="{% if edit_user and edit_user.id and edit_user.teacher_profile %}{{ edit_user.teacher_profile.university_email }}{% endif %}" placeholder="เช่น teacher@rmuti.ac.th">
+            </div>
+            <div class="form-group">
+                <label for="department">ภาควิชา</label>
+                <input type="text" id="department" name="department" value="{% if edit_user and edit_user.id and edit_user.teacher_profile %}{{ edit_user.teacher_profile.department }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="teacher_course_id">วิชา</label>
+                <select id="teacher_course_id" name="teacher_course_id" onchange="updateTeacherCourseCode()">
+                    <option value="">-- เลือกวิชา --</option>
+                    {% for course in courses %}
+                        <option value="{{ course.id }}" 
+                            data-course-code="{{ course.course_code }}"
+                            {% if edit_user and edit_user.id and edit_user.teacher_profile and edit_user.teaching_sections.first and edit_user.teaching_sections.first.course.id == course.id %}selected{% endif %}>
+                            {{ course.course_code }} - {{ course.course_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="teacher_course_code">รหัสวิชา</label>
+                <input type="text" id="teacher_course_code" name="teacher_course_code" readonly style="background-color: #f5f5f5;" value="{% if edit_user and edit_user.id and edit_user.teacher_profile and edit_user.teaching_sections.first %}{{ edit_user.teaching_sections.first.course.course_code }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="office">ห้องทำงาน</label>
+                <input type="text" id="office" name="office" value="{% if edit_user and edit_user.id and edit_user.teacher_profile %}{{ edit_user.teacher_profile.office }}{% endif %}">
+            </div>
+        </div>
+        
+        <!-- Admin Fields -->
+        <div id="admin-fields" style="display: {% if edit_user and edit_user.id and edit_user.role == 'admin' %}block{% else %}none{% endif %};">
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">ข้อมูลผู้ดูแลระบบ</h3>
+            <div class="form-group">
+                <label for="admin_department">หน่วยงาน</label>
+                <input type="text" id="admin_department" name="department" value="{% if edit_user and edit_user.id and edit_user.admin_profile %}{{ edit_user.admin_profile.department }}{% endif %}">
+            </div>
+            <div class="form-group">
+                <label for="notes">หมายเหตุ</label>
+                <textarea id="notes" name="notes" rows="3">{% if edit_user and edit_user.id and edit_user.admin_profile %}{{ edit_user.admin_profile.notes }}{% endif %}</textarea>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">บันทึก</button>
+            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleRoleFields() {
+    const role = document.getElementById('role').value;
+    const studentFields = document.getElementById('student-fields');
+    const teacherFields = document.getElementById('teacher-fields');
+    const adminFields = document.getElementById('admin-fields');
+    
+    // Hide all fields
+    studentFields.style.display = 'none';
+    teacherFields.style.display = 'none';
+    adminFields.style.display = 'none';
+    
+    // Show relevant fields
+    if (role === 'student') {
+        studentFields.style.display = 'block';
+    } else if (role === 'teacher') {
+        teacherFields.style.display = 'block';
+    } else if (role === 'admin') {
+        adminFields.style.display = 'block';
+    }
+}
+
+function updateCourseInfo() {
+    const sectionSelect = document.getElementById('section_id');
+    const courseNameInput = document.getElementById('course_name');
+    const courseCodeInput = document.getElementById('course_code');
+    
+    if (sectionSelect && sectionSelect.selectedIndex > 0) {
+        const selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+        const courseName = selectedOption.getAttribute('data-course-name');
+        const courseCode = selectedOption.getAttribute('data-course-code');
+        
+        if (courseNameInput) courseNameInput.value = courseName || '';
+        if (courseCodeInput) courseCodeInput.value = courseCode || '';
+    } else {
+        if (courseNameInput) courseNameInput.value = '';
+        if (courseCodeInput) courseCodeInput.value = '';
+    }
+}
+
+function updateTeacherCourseCode() {
+    const courseSelect = document.getElementById('teacher_course_id');
+    const courseCodeInput = document.getElementById('teacher_course_code');
+    
+    if (courseSelect && courseSelect.selectedIndex > 0) {
+        const selectedOption = courseSelect.options[courseSelect.selectedIndex];
+        const courseCode = selectedOption.getAttribute('data-course-code');
+        
+        if (courseCodeInput) courseCodeInput.value = courseCode || '';
+    } else {
+        if (courseCodeInput) courseCodeInput.value = '';
+    }
+}
+
+// Initialize course info on page load if section is already selected
+document.addEventListener('DOMContentLoaded', function() {
+    updateCourseInfo();
+    updateTeacherCourseCode();
+});
+</script>
+{% endblock %}
+

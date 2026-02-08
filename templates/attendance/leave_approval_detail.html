@@ -1,0 +1,286 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}แบบฟอร์มขออนุมัติการลา{% endblock %}
+
+{% block content %}
+<div class="leave-approval-detail">
+    <div class="form-container-detail">
+        <h2 class="form-title">แบบฟอร์มขออนุมัติการลา</h2>
+        
+        <div class="leave-type-tabs">
+            <div class="tab {% if leave_request.leave_type == 'sick' %}active{% endif %}">
+                ลาป่วย
+            </div>
+            <div class="tab {% if leave_request.leave_type == 'personal' %}active{% endif %}">
+                ลากิจ
+            </div>
+            <div class="tab {% if leave_request.leave_type == 'other' %}active{% endif %}">
+                อื่นๆ
+            </div>
+        </div>
+        
+        <div class="form-content">
+            <div class="info-row">
+                <div class="info-item">
+                    <strong>ชื่อ:</strong> {{ leave_request.student.get_full_name|default:leave_request.student.username }}
+                </div>
+                <div class="info-item">
+                    <strong>รหัสนักศึกษา:</strong>
+                    {% if leave_request.student.student_profile %}
+                        {{ leave_request.student.student_profile.student_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div class="info-item">
+                    <strong>วันที่:</strong> {{ leave_request.leave_date|date:"d/m/y" }}
+                </div>
+            </div>
+            
+            <div class="reason-section">
+                <label><strong>เหตุผล:</strong></label>
+                <div class="reason-box">
+                    {{ leave_request.reason }}
+                </div>
+            </div>
+            
+            {% if leave_request.supporting_document %}
+            <div class="document-section">
+                <label><strong>หลักฐานประกอบ:</strong></label>
+                <a href="{{ leave_request.supporting_document.url }}" target="_blank" class="btn-file">
+                    <i class="fas fa-file"></i> ไฟล์
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="current-status">
+                <strong>สถานะปัจจุบัน:</strong>
+                <span class="status-badge {{ leave_request.get_status_class }}">
+                    {{ leave_request.get_status_display }}
+                </span>
+            </div>
+            
+            {% if leave_request.status == 'pending' %}
+            <form method="post" class="approval-form">
+                {% csrf_token %}
+                <div class="approval-buttons">
+                    <button type="submit" name="action" value="reject" class="btn-reject">
+                        ปฏิเสธ
+                    </button>
+                    <button type="submit" name="action" value="approve" class="btn-approve">
+                        อนุมัติ
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <div class="review-info">
+                <p><strong>ผู้ตรวจสอบ:</strong> {{ leave_request.teacher.get_full_name|default:leave_request.teacher.username }}</p>
+                <p><strong>วันที่ตรวจสอบ:</strong> {{ leave_request.reviewed_at|date:"d/m/Y H:i" }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="action-buttons">
+    <a href="{% url 'attendance:leave_approval_list' %}" class="btn btn-secondary">กลับ</a>
+    <a href="{% url 'teacher:dashboard' %}" class="btn btn-secondary">หน้าหลัก</a>
+</div>
+
+<style>
+.leave-approval-detail {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.form-container-detail {
+    background: #f8f9fa;
+    border: 2px solid #0066cc;
+    border-radius: 8px;
+    padding: 2rem;
+    max-width: 800px;
+    width: 100%;
+}
+
+.form-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.leave-type-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: default;
+    font-weight: 500;
+}
+
+.tab.active {
+    background-color: #0066cc;
+    color: white;
+    border-color: #0066cc;
+}
+
+.form-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 4px;
+}
+
+.info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    padding: 0.5rem;
+}
+
+.reason-section {
+    margin-bottom: 1.5rem;
+}
+
+.reason-box {
+    background: white;
+    border: 2px solid #0066cc;
+    border-radius: 4px;
+    padding: 1rem;
+    min-height: 100px;
+    margin-top: 0.5rem;
+    white-space: pre-wrap;
+}
+
+.document-section {
+    margin-bottom: 1.5rem;
+}
+
+.btn-file {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: #0066cc;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+}
+
+.btn-file:hover {
+    background-color: #0052a3;
+}
+
+.current-status {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.approval-form {
+    margin-top: 1.5rem;
+}
+
+.approval-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.btn-reject, .btn-approve {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-reject {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-reject:hover {
+    background-color: #c82333;
+}
+
+.btn-approve {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-approve:hover {
+    background-color: #218838;
+}
+
+.review-info {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: #e7f3ff;
+    border-radius: 4px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+</style>
+{% endblock %}
+

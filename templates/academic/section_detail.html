@@ -1,0 +1,770 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}รายละเอียดกลุ่มเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+    .section-detail-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-header h1 {
+        margin: 0 0 1rem 0;
+        font-size: 2rem;
+    }
+    
+    .section-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .info-card {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 1rem;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .info-card label {
+        display: block;
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+    
+    .info-card .value {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid;
+    }
+    
+    .stat-card.enrolled {
+        border-left-color: #28a745;
+    }
+    
+    .stat-card.pending {
+        border-left-color: #ffc107;
+    }
+    
+    .stat-card.withdrawn {
+        border-left-color: #ff9800;
+    }
+    
+    .stat-card.completed {
+        border-left-color: #17a2b8;
+    }
+    
+    .stat-card.total {
+        border-left-color: #667eea;
+    }
+    
+    .stat-card h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.9rem;
+        color: #666;
+        text-transform: uppercase;
+    }
+    
+    .stat-card .number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .students-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-header {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-bottom: 2px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .table-header h2 {
+        margin: 0;
+        font-size: 1.3rem;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    thead {
+        background: #f8f9fa;
+    }
+    
+    th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .status-enrolled {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-withdrawn {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-completed {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+    
+    .btn-back {
+        display: inline-block;
+        margin-bottom: 1rem;
+        padding: 0.5rem 1rem;
+        background: #6c757d;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background 0.3s;
+    }
+    
+    .btn-back:hover {
+        background: #5a6268;
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Search and Filter Styles */
+    .search-filter-container {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+    
+    .search-box {
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    .search-box label,
+    .filter-box label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+    }
+    
+    .search-box input,
+    .filter-box select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+    
+    .search-box input:focus,
+    .filter-box select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .filter-box {
+        min-width: 200px;
+    }
+    
+    .search-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-search {
+        padding: 0.75rem 1.5rem;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background 0.3s;
+        white-space: nowrap;
+    }
+    
+    .btn-search:hover {
+        background: #5568d3;
+    }
+    
+    .btn-clear {
+        padding: 0.75rem 1.5rem;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background 0.3s;
+        white-space: nowrap;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-clear:hover {
+        background: #5a6268;
+        color: white;
+    }
+    
+    /* Action buttons in table */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .btn-delete {
+        padding: 0.4rem 0.8rem;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: background 0.3s;
+    }
+    
+    .btn-delete:hover {
+        background: #c82333;
+    }
+    
+    .results-info {
+        padding: 0.75rem 1rem;
+        background: #e7f3ff;
+        border-left: 4px solid #667eea;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+    
+    @media (max-width: 768px) {
+        .search-filter-container {
+            flex-direction: column;
+        }
+        
+        .search-box,
+        .filter-box {
+            width: 100%;
+        }
+        
+        .search-actions {
+            width: 100%;
+        }
+        
+        .btn-search,
+        .btn-clear {
+            flex: 1;
+        }
+    }
+    
+    /* Checkbox Styles */
+    .checkbox-column {
+        width: 40px;
+        text-align: center;
+    }
+    
+    .checkbox-column input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #667eea;
+    }
+    
+    /* Batch Actions Toolbar */
+    .batch-actions-toolbar {
+        background: #f8f9fa;
+        padding: 1rem 1.5rem;
+        border-bottom: 2px solid #dee2e6;
+        display: none;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .batch-actions-toolbar.show {
+        display: flex;
+    }
+    
+    .batch-actions-info {
+        flex: 1;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .batch-actions-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-batch {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-batch-delete {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-batch-delete:hover {
+        background: #c82333;
+    }
+    
+    .btn-batch-status {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .btn-batch-status:hover {
+        background: #138496;
+    }
+    
+    .btn-batch:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-detail-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <a href="{% url 'admin:academic_section_changelist' %}" class="btn-back">
+            ← กลับไปหน้ากลุ่มเรียน
+        </a>
+        {% if user.is_admin and section.section_number|lower == 'bis3r1' and section.course.course_code == '123456789' %}
+        <form method="post" action="{% url 'academic:add_students_to_bis3r2' %}" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" class="btn-back" style="background: #28a745; border: none; cursor: pointer;">
+                ➕ เพิ่มนักเรียนทั้งหมดจากรายชื่อใหม่
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    
+    <div class="section-header">
+        <h1>📚 {{ section.course.course_code }} - กลุ่ม {{ section.section_number }}</h1>
+        <p style="margin: 0; opacity: 0.9; font-size: 1.1rem;">{{ section.course.course_name }}</p>
+        
+        <div class="section-info-grid">
+            <div class="info-card">
+                <label>ปีการศึกษา / ภาคเรียน</label>
+                <div class="value">
+                    {% if section.semester %}
+                        {{ section.semester.academic_year.year }} - {{ section.semester.get_semester_number_display }}
+                    {% else %}
+                        ไม่ระบุ
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <label>อาจารย์ผู้สอน</label>
+                <div class="value">
+                    {% if section.teacher %}
+                        {{ section.teacher.get_full_name|default:section.teacher.username }}
+                    {% else %}
+                        ยังไม่กำหนด
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <label>ห้องเรียน</label>
+                <div class="value">{{ section.room|default:"ไม่ระบุ" }}</div>
+            </div>
+            
+            <div class="info-card">
+                <label>ตารางเรียน</label>
+                <div class="value">{{ section.schedule|default:"ไม่ระบุ" }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card pending">
+            <h3>รอลงทะเบียน</h3>
+            <div class="number">{{ total_pending }}</div>
+        </div>
+        
+        <div class="stat-card enrolled">
+            <h3>ลงทะเบียน</h3>
+            <div class="number">{{ total_enrolled }}</div>
+        </div>
+        
+        <div class="stat-card withdrawn">
+            <h3>ถอน</h3>
+            <div class="number">{{ total_withdrawn }}</div>
+        </div>
+        
+        <div class="stat-card completed">
+            <h3>เรียนจบ</h3>
+            <div class="number">{{ total_completed }}</div>
+        </div>
+        
+        <div class="stat-card total">
+            <h3>จำนวนรับ / ว่าง</h3>
+            <div class="number">{{ capacity }} / {{ available_slots }}</div>
+        </div>
+    </div>
+    
+    <div class="students-table">
+        <div class="table-header">
+            <h2>📋 รายชื่อนักเรียน ({{ total_students }} คน)</h2>
+        </div>
+        
+        <!-- Search and Filter Section -->
+        <div class="search-filter-container">
+            <form method="get" action="{% url 'academic:section_detail' section.id %}" id="search-form" class="search-box">
+                <label for="search">🔍 ค้นหานักเรียน</label>
+                <input 
+                    type="text" 
+                    id="search" 
+                    name="search" 
+                    value="{{ search_query }}" 
+                    placeholder="ค้นหาด้วยชื่อ, นามสกุล, รหัสนักศึกษา หรือ username..."
+                    autocomplete="off"
+                >
+                {% if status_filter %}
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                {% endif %}
+            </form>
+            
+            <form method="get" action="{% url 'academic:section_detail' section.id %}" class="filter-box">
+                <label for="status">📊 กรองตามสถานะ</label>
+                <select id="status" name="status" onchange="this.form.submit()">
+                    <option value="">ทั้งหมด</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>รอลงทะเบียน</option>
+                    <option value="enrolled" {% if status_filter == 'enrolled' %}selected{% endif %}>ลงทะเบียน</option>
+                    <option value="withdrawn" {% if status_filter == 'withdrawn' %}selected{% endif %}>ถอน</option>
+                    <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>เรียนจบ</option>
+                </select>
+                {% if search_query %}
+                <input type="hidden" name="search" value="{{ search_query }}">
+                {% endif %}
+            </form>
+            
+            <div class="search-actions">
+                <button type="submit" form="search-form" class="btn-search">
+                    <i class="fas fa-search"></i> ค้นหา
+                </button>
+                {% if search_query or status_filter %}
+                <a href="{% url 'academic:section_detail' section.id %}" class="btn-clear">
+                    <i class="fas fa-times"></i> ล้าง
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Results Info -->
+        {% if search_query or status_filter %}
+        <div class="results-info">
+            <i class="fas fa-info-circle"></i>
+            พบ <strong>{{ enrollments|length }}</strong> รายการ
+            {% if search_query %}
+                สำหรับคำค้นหา "<strong>{{ search_query }}</strong>"
+            {% endif %}
+            {% if status_filter %}
+                สถานะ: <strong>{{ enrollments.first.get_status_display|default:status_filter }}</strong>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Batch Actions Toolbar -->
+        {% if user.is_admin or user == section.teacher %}
+        <div class="batch-actions-toolbar" id="batchActionsToolbar">
+            <div class="batch-actions-info">
+                <i class="fas fa-check-square"></i>
+                <span id="selectedCount">0</span> รายการที่เลือก
+            </div>
+            <div class="batch-actions-buttons">
+                <button type="button" class="btn-batch btn-batch-delete" id="btnBatchDelete" onclick="batchDelete()">
+                    <i class="fas fa-trash-alt"></i> ลบที่เลือก
+                </button>
+                <button type="button" class="btn-batch btn-batch-status" id="btnBatchStatus" onclick="showStatusModal()">
+                    <i class="fas fa-exchange-alt"></i> เปลี่ยนสถานะ
+                </button>
+                <button type="button" class="btn-batch" style="background: #6c757d; color: white;" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> ยกเลิก
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if enrollments %}
+        <form id="batchForm" method="post" action="{% url 'academic:batch_delete_enrollments' section.id %}">
+            {% csrf_token %}
+            <table>
+            <thead>
+                <tr>
+                    {% if user.is_admin or user == section.teacher %}
+                    <th class="checkbox-column">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                    </th>
+                    {% endif %}
+                    <th>ลำดับ</th>
+                    <th>รหัสนักศึกษา</th>
+                    <th>ชื่อ - นามสกุล</th>
+                    <th>สถานะ</th>
+                    <th>วันที่ลงทะเบียน</th>
+                    {% if user.is_admin or user == section.teacher %}
+                    <th>จัดการ</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                <tr>
+                    {% if user.is_admin or user == section.teacher %}
+                    <td class="checkbox-column">
+                        <input type="checkbox" name="enrollment_ids" value="{{ enrollment.id }}" class="enrollment-checkbox" onchange="updateBatchActions()">
+                    </td>
+                    {% endif %}
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        {% if enrollment.student.profile.student_id %}
+                            {{ enrollment.student.profile.student_id }}
+                        {% else %}
+                            {{ enrollment.student.username }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ enrollment.student.get_full_name|default:enrollment.student.username }}</strong>
+                        <br>
+                        <small style="color: #6c757d;">{{ enrollment.student.username }}</small>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ enrollment.status }}">
+                            {{ enrollment.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ enrollment.enrolled_at|date:"d/m/Y H:i" }}</td>
+                    {% if user.is_admin or user == section.teacher %}
+                    <td>
+                        <div class="action-buttons">
+                            <form method="post" action="{% url 'academic:delete_enrollment' section.id enrollment.id %}" style="display: inline;" onsubmit="return confirm('คุณแน่ใจหรือไม่ว่าต้องการลบนักเรียน {{ enrollment.student.get_full_name|default:enrollment.student.username }} ออกจากกลุ่มเรียนนี้?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-delete" title="ลบนักเรียน">
+                                    <i class="fas fa-trash-alt"></i> ลบ
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </form>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-user-slash"></i>
+            <p>ยังไม่มีนักเรียนลงทะเบียนในกลุ่มเรียนนี้</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-submit search form on Enter key
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('search-form').submit();
+            }
+        });
+    }
+    
+    // Clear search when clicking clear button
+    const clearBtn = document.querySelector('.btn-clear');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function(e) {
+            // The link will handle the redirect
+        });
+    }
+    
+    // Initialize batch actions
+    updateBatchActions();
+});
+
+// Toggle select all checkboxes
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.enrollment-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateBatchActions();
+}
+
+// Update batch actions toolbar visibility and count
+function updateBatchActions() {
+    const checkboxes = document.querySelectorAll('.enrollment-checkbox:checked');
+    const toolbar = document.getElementById('batchActionsToolbar');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    if (selectedCount) {
+        selectedCount.textContent = checkboxes.length;
+    }
+    
+    if (toolbar) {
+        if (checkboxes.length > 0) {
+            toolbar.classList.add('show');
+        } else {
+            toolbar.classList.remove('show');
+        }
+    }
+    
+    // Update select all checkbox state
+    if (selectAllCheckbox) {
+        const allCheckboxes = document.querySelectorAll('.enrollment-checkbox');
+        const allChecked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = checkboxes.length > 0 && checkboxes.length < allCheckboxes.length;
+    }
+}
+
+// Clear all selections
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.enrollment-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+    });
+    const selectAllCheckbox = document.getElementById('selectAll');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+    updateBatchActions();
+}
+
+// Batch delete selected enrollments
+function batchDelete() {
+    const checkboxes = document.querySelectorAll('.enrollment-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('กรุณาเลือกรายการที่ต้องการลบ');
+        return;
+    }
+    
+    const count = checkboxes.length;
+    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ ${count} รายการที่เลือก?`)) {
+        const form = document.getElementById('batchForm');
+        if (form) {
+            form.submit();
+        }
+    }
+}
+
+// Show status change modal (placeholder for future implementation)
+function showStatusModal() {
+    const checkboxes = document.querySelectorAll('.enrollment-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('กรุณาเลือกรายการที่ต้องการเปลี่ยนสถานะ');
+        return;
+    }
+    
+    // TODO: Implement status change modal
+    alert('ฟีเจอร์เปลี่ยนสถานะหลายรายการพร้อมกันจะเพิ่มในอนาคต');
+}
+</script>
+{% endblock %}
+

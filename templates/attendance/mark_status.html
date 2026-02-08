@@ -1,0 +1,93 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}จัดการสถานะการเข้าเรียน{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>จัดการสถานะการเข้าเรียน</h1>
+    <div class="info-box">
+        <p><strong>กลุ่มเรียน:</strong> {{ session.section }}</p>
+        <p><strong>วันที่:</strong> {{ session.session_date|date:"d/m/Y" }}</p>
+        <p><strong>เวลา:</strong> {{ session.session_time|time:"H:i" }}</p>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>นักศึกษา</th>
+                <th>รหัสนักศึกษา</th>
+                <th>สถานะปัจจุบัน</th>
+                <th>เวลาที่สแกน</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record.student.get_full_name|default:record.student.username }}</td>
+                <td>
+                    {% if record.student.student_profile %}
+                        {{ record.student.student_profile.student_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-{{ record.status }}">
+                        {{ record.get_status_display }}
+                    </span>
+                </td>
+                <td>{{ record.scanned_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="record_id" value="{{ record.id }}">
+                        <select name="status" onchange="this.form.submit()">
+                            <option value="present" {% if record.status == 'present' %}selected{% endif %}>มา</option>
+                            <option value="late" {% if record.status == 'late' %}selected{% endif %}>สาย</option>
+                            <option value="absent" {% if record.status == 'absent' %}selected{% endif %}>ขาด</option>
+                            <option value="excused" {% if record.status == 'excused' %}selected{% endif %}>ลากิจ</option>
+                        </select>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">ยังไม่มีบันทึกการเข้าเรียน</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="form-actions">
+    <a href="{% url 'attendance:qr_display' session.id %}" class="btn btn-secondary">กลับ</a>
+</div>
+
+<style>
+    .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+    .badge-present {
+        background-color: #28a745;
+        color: white;
+    }
+    .badge-late {
+        background-color: #ffc107;
+        color: #333;
+    }
+    .badge-absent {
+        background-color: #dc3545;
+        color: white;
+    }
+    .badge-excused {
+        background-color: #0099ff;
+        color: white;
+    }
+</style>
+{% endblock %}
+

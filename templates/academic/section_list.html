@@ -1,0 +1,582 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}บันทึกข้อมูลผู้เรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #eee;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    .form-section h2 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0066cc;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+    
+    .form-group select,
+    .form-group input[type="file"] {
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+    
+    .form-group select:focus,
+    .form-group input[type="file"]:focus {
+        outline: none;
+        border-color: #0066cc;
+    }
+    
+    .btn-submit {
+        background: #28a745;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-submit:hover {
+        background: #218838;
+    }
+    
+    .btn-submit:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .help-text {
+        font-size: 0.875rem;
+        color: #666;
+        margin-top: 0.5rem;
+    }
+    
+    .section-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-top: 1rem;
+    }
+    
+    .section-info strong {
+        color: #0066cc;
+    }
+    
+    /* Admin action buttons container */
+    .admin-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    /* Inline form styles */
+    .form-inline {
+        display: inline-block;
+    }
+    
+    /* Button variants */
+    .btn-submit.btn-info {
+        background: #17a2b8;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .btn-submit.btn-success {
+        background: #28a745;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .btn-submit.btn-warning {
+        background: #ffc107;
+        color: #333;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .btn-submit.btn-margin-top {
+        margin-top: 1rem;
+    }
+    
+    /* Debug info text styles */
+    .debug-text {
+        color: #666;
+        font-size: 0.85rem;
+    }
+    
+    .debug-text-success {
+        color: #28a745;
+        font-size: 0.85rem;
+    }
+    
+    .debug-text-error {
+        color: #dc3545;
+        font-size: 0.85rem;
+    }
+    
+    /* Sections table styles */
+    .sections-table-container {
+        margin-top: 2rem;
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .sections-table-container h2 {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #0066cc;
+    }
+    
+    .sections-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+    
+    .sections-table thead {
+        background: #f8f9fa;
+    }
+    
+    .sections-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .sections-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+        color: #555;
+    }
+    
+    .sections-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        display: inline-block;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        margin-right: 0.5rem;
+    }
+    
+    .btn-view {
+        background: #0066cc;
+        color: white;
+    }
+    
+    .btn-view:hover {
+        background: #0052a3;
+        color: white;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>บันทึกข้อมูลผู้เรียน</h1>
+    {% if user.is_admin %}
+    <div class="admin-actions">
+        <form method="post" action="{% url 'academic:create_courses_for_teacher' %}" class="form-inline">
+            {% csrf_token %}
+            {% if selected_academic_year_id %}
+            <input type="hidden" name="academic_year" value="{{ selected_academic_year_id }}">
+            {% endif %}
+            {% if selected_semester_number %}
+            <input type="hidden" name="semester_number" value="{{ selected_semester_number }}">
+            {% endif %}
+            {% if selected_teacher_id %}
+            <input type="hidden" name="teacher_id" value="{{ selected_teacher_id }}">
+            {% endif %}
+            <button type="submit" class="btn-submit btn-info">
+                <i class="fas fa-plus"></i> สร้างรายวิชาและกลุ่มเรียนสำหรับอาจารย์
+            </button>
+        </form>
+        <form method="post" action="{% url 'academic:add_students_to_bis3r1' %}" class="form-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn-submit btn-success">
+                <i class="fas fa-user-plus"></i> เพิ่มนักเรียนเข้าในกลุ่มเรียน bis3r1
+            </button>
+        </form>
+        <form method="post" action="{% url 'academic:add_students_from_list' %}" class="form-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn-submit btn-warning">
+                <i class="fas fa-users"></i> เพิ่มนักเรียน 30 คนจากรายชื่อ
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<div class="form-container">
+    <!-- ส่วนที่ 1: ฟอร์มเลือกข้อมูล -->
+    <div class="form-section">
+        <h2>1. เลือกข้อมูล</h2>
+        <form method="get" id="filterForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="academic_year">ปีการศึกษา *</label>
+                    <select id="academic_year" name="academic_year" required onchange="updateSemesters()">
+                        <option value="">-- เลือกปีการศึกษา --</option>
+                        {% for year in academic_years %}
+                        <option value="{{ year.id }}" {% if selected_academic_year_id|stringformat:"s" == year.id|stringformat:"s" %}selected{% endif %}>
+                            {{ year.year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="help-text">เลือกปีการศึกษา (รวมปีการศึกษาก่อนหน้านี้ด้วย)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="semester_number">ภาคเรียน *</label>
+                    <select id="semester_number" name="semester_number" required onchange="updateCourses()" {% if not selected_academic_year_id %}disabled{% endif %}>
+                        <option value="">-- เลือกภาคเรียน --</option>
+                        <option value="1" {% if selected_semester_number|stringformat:"s" == "1" or selected_semester_number == 1 %}selected{% endif %}>ภาคเรียนที่ 1</option>
+                        <option value="2" {% if selected_semester_number|stringformat:"s" == "2" or selected_semester_number == 2 %}selected{% endif %}>ภาคเรียนที่ 2</option>
+                        <option value="3" {% if selected_semester_number|stringformat:"s" == "3" or selected_semester_number == 3 %}selected{% endif %}>ภาคฤดูร้อน (Summer)</option>
+                    </select>
+                    <small class="help-text">เลือกภาคเรียน (1, 2, หรือ Summer)</small>
+                </div>
+                
+                {% if user.is_admin %}
+                <div class="form-group">
+                    <label for="teacher">อาจารย์ผู้สอน</label>
+                    <select id="teacher" name="teacher" onchange="this.form.submit()">
+                        <option value="">-- เลือกอาจารย์ (ทั้งหมด) --</option>
+                        {% for teacher in teachers %}
+                        <option value="{{ teacher.id }}" {% if selected_teacher_id|stringformat:"s" == teacher.id|stringformat:"s" %}selected{% endif %}>
+                            {{ teacher.get_full_name|default:teacher.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="help-text">เลือกรายชื่ออาจารย์เพื่อดูรายวิชาที่สอน</small>
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="course">รายวิชา *</label>
+                    <select id="course" name="course" required onchange="updateSections()" {% if not selected_semester_number or not selected_academic_year_id %}disabled{% else %}data-enabled="true"{% endif %}>
+                        <option value="">-- เลือกรายวิชา --</option>
+                        {% if courses and courses|length > 0 %}
+                            <!-- Debug: Courses count = {{ courses|length }} -->
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if selected_course_id|stringformat:"s" == course.id|stringformat:"s" %}selected{% endif %}>
+                                {{ course.course_code }} - {{ course.course_name }}
+                                {% if user.is_admin %}
+                                    {% with course.sections.all|first as first_section %}
+                                        {% if first_section and first_section.teacher %}
+                                            ({{ first_section.teacher.get_full_name|default:first_section.teacher.username }})
+                                        {% elif first_section %}
+                                            (ยังไม่กำหนดอาจารย์)
+                                        {% endif %}
+                                    {% endwith %}
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="" disabled>
+                                {% if selected_teacher_id %}
+                                    ไม่มีรายวิชาสำหรับอาจารย์ที่เลือกในภาคเรียนนี้
+                                    {% if debug_info.sections_count == 0 %}
+                                        (อาจารย์ยังไม่มีกลุ่มเรียนในภาคเรียนนี้)
+                                    {% endif %}
+                                {% else %}
+                                    ไม่มีรายวิชา (กรุณาเลือกอาจารย์หรือเลือกข้อมูลอื่น)
+                                {% endif %}
+                            </option>
+                        {% endif %}
+                    </select>
+                    <small class="help-text">
+                        เลือกรายวิชาที่สอน
+                        {% if user.is_admin %} (กรองตามอาจารย์ที่เลือก){% endif %}
+                        {% if debug_info.sections_count %}
+                            <br><span class="debug-text">พบ {{ debug_info.sections_count }} กลุ่มเรียนสำหรับอาจารย์นี้</span>
+                        {% endif %}
+                        {% if debug_info.courses_count %}
+                            <br><span class="debug-text">พบ {{ debug_info.courses_count }} รายวิชา (Course IDs: {{ debug_info.course_ids|join:", " }})</span>
+                        {% endif %}
+                        {% if debug_info.courses_found is not None %}
+                            {% if debug_info.courses_found > 0 %}
+                            <br><span class="debug-text-success">
+                            {% else %}
+                            <br><span class="debug-text-error">
+                            {% endif %}
+                                Courses found: {{ debug_info.courses_found }}
+                                {% if debug_info.courses_list %}
+                                    <br>รายวิชา: {{ debug_info.courses_list|join:", " }}
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                        {% if selected_teacher_id and not courses and debug_info %}
+                            <br><span class="debug-text-error">⚠ ไม่พบรายวิชา - อาจารย์: {{ debug_info.teacher_name|default:"ไม่พบ" }}, กลุ่มเรียน: {{ debug_info.sections_count|default:0 }} กลุ่ม, Semester ID: {{ debug_info.semester_id|default:"N/A" }}</span>
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            <button type="submit" class="btn-submit">เลือกข้อมูล</button>
+        </form>
+    </div>
+    
+    <!-- ส่วนที่ 2: อัปโหลด Excel -->
+    {% if selected_course_id and selected_academic_year_id and selected_semester_number %}
+    <div class="form-section">
+        <h2>2. อัปโหลดไฟล์ Excel</h2>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            <input type="hidden" name="academic_year" value="{{ selected_academic_year_id }}">
+            <input type="hidden" name="semester_number" value="{{ selected_semester_number }}">
+            <input type="hidden" name="course" value="{{ selected_course_id }}">
+            {% if user.is_admin and selected_teacher_id %}
+            <input type="hidden" name="teacher" value="{{ selected_teacher_id }}">
+            {% endif %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="section">กลุ่มเรียน *</label>
+                    <select id="section" name="section" required>
+                        <option value="">-- เลือกกลุ่มเรียน --</option>
+                        {% for section in sections %}
+                        <option value="{{ section.id }}" {% if selected_section_id|stringformat:"s" == section.id|stringformat:"s" %}selected{% endif %}>
+                            {{ section.course.course_code }} - กลุ่ม {{ section.section_number }}
+                            {% if section.teacher %} ({{ section.teacher.get_full_name|default:section.teacher.username }}){% endif %}
+                            {% if section.room %} (ห้อง {{ section.room }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="help-text">เลือกกลุ่มเรียนที่ต้องการบันทึกข้อมูล</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="excel_file">ไฟล์ Excel *</label>
+                    <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+                    <small class="help-text">อัปโหลดไฟล์ Excel ที่มีรหัสนักศึกษา (คอลัมน์แรก: รหัสนักศึกษา)</small>
+                </div>
+            </div>
+            
+            {% if sections %}
+            <div class="section-info">
+                <strong>ข้อมูลที่เลือก:</strong><br>
+                {% for year in academic_years %}
+                    {% if selected_academic_year_id|stringformat:"s" == year.id|stringformat:"s" %}
+                        ปีการศึกษา: {{ year.year }} | 
+                    {% endif %}
+                {% endfor %}
+                ภาคเรียน: {% if selected_semester_number == "1" %}ภาคเรียนที่ 1{% elif selected_semester_number == "2" %}ภาคเรียนที่ 2{% elif selected_semester_number == "3" %}ภาคฤดูร้อน{% endif %} | 
+                {% if user.is_admin and selected_teacher_id %}
+                    {% for teacher in teachers %}
+                        {% if selected_teacher_id|stringformat:"s" == teacher.id|stringformat:"s" %}
+                            อาจารย์: {{ teacher.get_full_name|default:teacher.username }} | 
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% for course in courses %}
+                    {% if selected_course_id|stringformat:"s" == course.id|stringformat:"s" %}
+                        รายวิชา: {{ course.course_code }} - {{ course.course_name }}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <button type="submit" class="btn-submit btn-margin-top">บันทึกข้อมูลผู้เรียน</button>
+        </form>
+    </div>
+    {% endif %}
+    
+    <!-- ส่วนที่ 3: ตารางกลุ่มเรียน -->
+    {% if selected_course_id and selected_academic_year_id and selected_semester_number and sections_with_info %}
+    <div class="sections-table-container">
+        <h2>กลุ่มเรียน</h2>
+        <div class="table-container">
+            <table class="sections-table">
+                <thead>
+                    <tr>
+                        <th>กลุ่มเรียน</th>
+                        <th>ภาคเรียน</th>
+                        <th>อาจารย์ผู้สอน</th>
+                        <th>จำนวนนักเรียน</th>
+                        <th>ห้องเรียน</th>
+                        <th>ตารางเรียน</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sections_with_info %}
+                    <tr>
+                        <td><strong>กลุ่ม {{ item.section.section_number }}</strong></td>
+                        <td>{{ item.section.semester }}</td>
+                        <td>
+                            {% if item.teacher %}
+                                {{ item.teacher.get_full_name|default:item.teacher.username }}
+                            {% else %}
+                                <span style="color: #999;">ยังไม่กำหนดอาจารย์</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.student_count }}</td>
+                        <td>{{ item.section.room|default:"-" }}</td>
+                        <td>{{ item.section.schedule|default:"-" }}</td>
+                        <td>
+                            <a href="{% url 'academic:section_edit' item.section.id %}" class="btn btn-sm btn-edit">แก้ไข</a>
+                            <a href="{% url 'academic:section_detail' item.section.id %}" class="btn btn-sm btn-view">ดูรายละเอียด</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% elif selected_course_id and selected_academic_year_id and selected_semester_number and not sections_with_info %}
+    <div class="sections-table-container">
+        <h2>กลุ่มเรียน</h2>
+        <p style="text-align: center; color: #999; padding: 2rem;">ยังไม่มีกลุ่มเรียนสำหรับรายวิชานี้</p>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+function updateSemesters() {
+    const academicYearId = document.getElementById('academic_year').value;
+    const semesterSelect = document.getElementById('semester_number');
+    const courseSelect = document.getElementById('course');
+    
+    if (academicYearId) {
+        semesterSelect.disabled = false;
+        // Only clear course select if semester is not already selected
+        if (!semesterSelect.value) {
+            courseSelect.disabled = true;
+            courseSelect.innerHTML = '<option value="">-- เลือกรายวิชา --</option>';
+        }
+    } else {
+        semesterSelect.disabled = true;
+        courseSelect.disabled = true;
+        semesterSelect.value = '';
+        courseSelect.innerHTML = '<option value="">-- เลือกรายวิชา --</option>';
+    }
+}
+
+function updateCourses() {
+    const academicYearId = document.getElementById('academic_year').value;
+    const semesterNumber = document.getElementById('semester_number').value;
+    const courseSelect = document.getElementById('course');
+    const teacherSelect = document.getElementById('teacher');
+    
+    if (academicYearId && semesterNumber) {
+        // Enable course select
+        courseSelect.disabled = false;
+        // Clear course options temporarily
+        courseSelect.innerHTML = '<option value="">-- กำลังโหลดรายวิชา --</option>';
+        // Reload page with new parameters to get courses
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        } else {
+            console.error('Form filterForm not found');
+        }
+    } else {
+        courseSelect.disabled = true;
+        courseSelect.innerHTML = '<option value="">-- เลือกรายวิชา --</option>';
+    }
+}
+
+function updateSections() {
+    const courseId = document.getElementById('course').value;
+    
+    if (courseId) {
+        // Reload page with new parameters to get sections
+        const form = document.getElementById('filterForm');
+        if (form) {
+            form.submit();
+        } else {
+            console.error('Form filterForm not found');
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const semesterNumber = document.getElementById('semester_number');
+    const academicYearId = document.getElementById('academic_year');
+    const courseSelect = document.getElementById('course');
+    const teacherSelect = document.getElementById('teacher');
+    
+    // Only call updateSemesters if academic year is not selected
+    // This prevents clearing course dropdown when page loads with existing selections
+    if (!academicYearId || !academicYearId.value) {
+        updateSemesters();
+    } else {
+        // If academic year is selected, enable semester dropdown
+        if (semesterNumber) {
+            semesterNumber.disabled = false;
+        }
+    }
+    
+    // Enable course select if semester is already selected
+    if (semesterNumber && semesterNumber.value && academicYearId && academicYearId.value) {
+        courseSelect.disabled = false;
+    }
+    
+    // Also enable course select when teacher is selected (for admin)
+    if (teacherSelect && semesterNumber && semesterNumber.value && academicYearId && academicYearId.value) {
+        courseSelect.disabled = false;
+    }
+    
+    // Initialize course select state
+    const courseOptions = courseSelect ? courseSelect.options.length : 0;
+});
+</script>
+{% endblock %}
+{% endblock %}

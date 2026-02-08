@@ -1,0 +1,33 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}สร้าง QR Code{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>สร้าง QR Code สำหรับเช็คชื่อ</h1>
+    <div class="info-box">
+        <p><strong>กลุ่มเรียน:</strong> {{ section }}</p>
+    </div>
+    <form method="post" class="form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="session_date">วันที่เช็คชื่อ</label>
+            <input type="date" id="session_date" name="session_date" value="{% now 'Y-m-d' %}" required>
+        </div>
+        <div class="form-group">
+            <label for="session_time">เวลาเช็คชื่อ</label>
+            <input type="time" id="session_time" name="session_time" value="{% now 'H:i' %}" required>
+        </div>
+        <div class="form-group">
+            <label for="duration_minutes">ระยะเวลาเช็คชื่อ (นาที)</label>
+            <input type="number" id="duration_minutes" name="duration_minutes" value="15" min="5" max="60" required>
+            <small style="color: #666; display: block; margin-top: 0.25rem;">QR Code จะหมดอายุ 1 ชั่วโมงหลังจากสร้าง (ไม่สามารถสแกนย้อนหลังได้)</small>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">สร้าง QR Code</button>
+            <a href="{% url 'academic:my_sections' %}" class="btn btn-secondary">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

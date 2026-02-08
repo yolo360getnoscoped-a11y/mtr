@@ -1,0 +1,332 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}รายละเอียดการเข้าเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    
+    .student-info {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .student-info h2 {
+        margin: 0 0 1rem 0;
+        color: #333;
+    }
+    
+    .info-row {
+        display: flex;
+        gap: 2rem;
+        margin: 0.5rem 0;
+    }
+    
+    .info-label {
+        font-weight: bold;
+        min-width: 150px;
+        color: #666;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        text-align: center;
+    }
+    
+    .stat-card h3 {
+        margin: 0 0 0.5rem 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .stat-card .number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin: 2rem 0;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table thead {
+        background: #0066cc;
+        color: white;
+    }
+    
+    .data-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .status-present {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-late {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-absent {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .proof-image {
+        max-width: 200px;
+        max-height: 200px;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .proof-image:hover {
+        transform: scale(1.05);
+    }
+    
+    .proof-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.9);
+        cursor: pointer;
+    }
+    
+    .proof-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 90%;
+        max-height: 90%;
+    }
+    
+    .proof-modal-content img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    
+    .btn {
+        padding: 0.75rem 2rem;
+        border-radius: 4px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        display: inline-block;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #545b62;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .no-proof {
+        color: #999;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="detail-container">
+    <div class="student-info">
+        <h2>ข้อมูลนักศึกษา</h2>
+        <div class="info-row">
+            <span class="info-label">ชื่อ-นามสกุล:</span>
+            <span>{{ student.get_full_name|default:student.username }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">รหัสนักศึกษา:</span>
+            <span>{{ student_id }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">กลุ่มเรียน:</span>
+            <span>{{ section }}</span>
+        </div>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>เซสชันทั้งหมด</h3>
+            <div class="number">{{ total_sessions }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>มา</h3>
+            <div class="number" style="color: #28a745;">{{ present_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>สาย</h3>
+            <div class="number" style="color: #ffc107;">{{ late_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>ขาด</h3>
+            <div class="number" style="color: #dc3545;">{{ absent_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>อัตราการเข้าเรียน</h3>
+            <div class="number">{{ attendance_rate|floatformat:1 }}%</div>
+        </div>
+    </div>
+    
+    <h3>รายละเอียดการเข้าเรียน</h3>
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>วันที่</th>
+                    <th>เวลา</th>
+                    <th>สถานะ</th>
+                    <th>เวลาเช็คชื่อ</th>
+                    <th>หลักฐานการเข้าเรียน</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if session_records %}
+                    {% for session, record in session_records %}
+                        {% if record %}
+                            <tr>
+                                <td>{{ session.session_date|date:"d/m/Y" }}</td>
+                                <td>{{ session.session_time|time:"H:i" }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ record.status }}">
+                                        {{ record.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if record.checked_in_at %}
+                                        {{ record.checked_in_at|date:"d/m/Y H:i" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.proof_image %}
+                                        <img src="{{ record.proof_image.url }}" alt="หลักฐาน" class="proof-image" onclick="openProofModal('{{ record.proof_image.url }}')">
+                                    {% else %}
+                                        <span class="no-proof">ไม่มีหลักฐาน</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td>{{ session.session_date|date:"d/m/Y" }}</td>
+                                <td>{{ session.session_time|time:"H:i" }}</td>
+                                <td>
+                                    <span class="status-badge status-absent">ขาดเรียน</span>
+                                </td>
+                                <td>-</td>
+                                <td><span class="no-proof">ไม่มีหลักฐาน</span></td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem;">ยังไม่มีข้อมูลการเข้าเรียน</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'attendance:report' %}?section_id={{ section.id }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn btn-secondary">กลับ</a>
+    </div>
+</div>
+
+<!-- Modal for proof image -->
+<div id="proofModal" class="proof-modal" onclick="closeProofModal()">
+    <div class="proof-modal-content">
+        <img id="modalImage" src="" alt="หลักฐานการเข้าเรียน">
+    </div>
+</div>
+
+<script>
+function openProofModal(imageUrl) {
+    const modal = document.getElementById('proofModal');
+    const modalImg = document.getElementById('modalImage');
+    modalImg.src = imageUrl;
+    modal.style.display = 'block';
+}
+
+function closeProofModal() {
+    const modal = document.getElementById('proofModal');
+    modal.style.display = 'none';
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeProofModal();
+    }
+});
+</script>
+{% endblock %}
+

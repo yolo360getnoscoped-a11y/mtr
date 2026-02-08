@@ -1,0 +1,91 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}QR Code เช็คชื่อ{% endblock %}
+
+{% block extra_css %}
+<style>
+    .qr-display-container {
+        text-align: center;
+        padding: 2rem;
+    }
+    .qr-code {
+        margin: 2rem 0;
+        padding: 2rem;
+        background: white;
+        border-radius: 8px;
+        display: inline-block;
+    }
+    .qr-code img {
+        max-width: 400px;
+        width: 100%;
+    }
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    .stat-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    .stat-card h3 {
+        margin: 0 0 0.5rem 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    .stat-card .number {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #333;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="qr-display-container">
+    <h1>QR Code สำหรับเช็คชื่อ</h1>
+    <div class="info-box">
+        <p><strong>กลุ่มเรียน:</strong> {{ session.section }}</p>
+        <p><strong>วันที่:</strong> {{ session.session_date|date:"d/m/Y" }}</p>
+        <p><strong>เวลา:</strong> {{ session.session_time|time:"H:i" }}</p>
+    </div>
+    
+    <div class="qr-code">
+        <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code">
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>ทั้งหมด</h3>
+            <div class="number">{{ total_students }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>มา</h3>
+            <div class="number" style="color: #28a745;">{{ present_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>สาย</h3>
+            <div class="number" style="color: #ffc107;">{{ late_count }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>ขาด</h3>
+            <div class="number" style="color: #dc3545;">{{ absent_count }}</div>
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <a href="{% url 'attendance:mark_status' session.id %}" class="btn btn-primary">จัดการสถานะการเข้าเรียน</a>
+        <a href="{% url 'academic:my_sections' %}" class="btn btn-secondary">กลับ</a>
+    </div>
+</div>
+
+<script>
+    // Auto-refresh stats every 5 seconds
+    setInterval(function() {
+        location.reload();
+    }, 5000);
+</script>
+{% endblock %}
+

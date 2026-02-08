@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}ระบบบริหารจัดการการเรียน{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'image/download.png' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'image/download.png' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="dashboard-body">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="header-left">
+                {% if user.is_authenticated %}
+                    {% if user.is_admin %}
+                        <a href="{% url 'academic:course_list' %}" class="home-link">หน้าหลัก</a>
+                    {% elif user.is_teacher %}
+                        <a href="{% url 'teacher:dashboard' %}" class="home-link">หน้าหลัก</a>
+                    {% else %}
+                        <a href="{% url 'attendance:scan_page' %}" class="home-link">หน้าหลัก</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="home-link">หน้าหลัก</a>
+                {% endif %}
+                <div class="university-branding">
+                    <img src="{% static 'image/download.png' %}" alt="Logo" class="header-logo">
+                    <span class="university-name">มหาวิทยาลัยเทคโนโลยีราชมงคลอีสาน วิทยาเขตขอนแก่น</span>
+                </div>
+            </div>
+            <div class="header-right">
+                {% if user.is_authenticated %}
+                <div class="dropdown-menu-container">
+                    <button class="dropdown-toggle" onclick="toggleDropdown()" aria-label="เมนู">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        {% if user.is_admin %}
+                            <!-- Admin Menu -->
+                            <a href="{% url 'academic:course_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'course_list' or request.resolver_match.url_name == 'home' %}active{% endif %}">
+                                <i class="fas fa-home"></i>
+                                <span>หน้าหลัก</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{% url 'academic:course_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'course_list' or request.resolver_match.url_name == 'course_add' or request.resolver_match.url_name == 'course_edit' %}active{% endif %}">
+                                <i class="fas fa-book"></i>
+                                <span>จัดการรายวิชา</span>
+                            </a>
+                            <a href="{% url 'academic:section_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'section_list' or request.resolver_match.url_name == 'assign_teacher' or request.resolver_match.url_name == 'manage_enrollment' %}active{% endif %}">
+                                <i class="fas fa-users"></i>
+                                <span>กลุ่มเรียน</span>
+                            </a>
+                            <a href="{% url 'accounts:user_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'user_list' or request.resolver_match.url_name == 'user_add' or request.resolver_match.url_name == 'user_edit' %}active{% endif %}">
+                                <i class="fas fa-user-cog"></i>
+                                <span>จัดการผู้ใช้</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <!-- Teacher Menu Items -->
+                            <a href="{% url 'attendance:report' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report' or request.resolver_match.url_name == 'report_summary' %}active{% endif %}">
+                                <i class="fas fa-history"></i>
+                                <span>ดูประวัติการเข้าเรียน</span>
+                            </a>
+                            <a href="{% url 'attendance:notifications' %}" class="dropdown-item {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+                                <i class="fas fa-bell"></i>
+                                <span>การแจ้งเตือน</span>
+                            </a>
+                            <a href="{% url 'attendance:leave_approval_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'leave_approval_list' or request.resolver_match.url_name == 'leave_approval_detail' %}active{% endif %}">
+                                <i class="fas fa-calendar-times"></i>
+                                <span>แจ้งลา</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{% url 'accounts:profile' %}" class="dropdown-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                                <i class="fas fa-user"></i>
+                                <span>ข้อมูลผู้ใช้</span>
+                            </a>
+                            <a href="{% url 'accounts:logout' %}" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>ออกจากระบบ</span>
+                            </a>
+                        {% elif user.is_teacher %}
+                            <!-- Teacher Menu -->
+                            <a href="{% url 'teacher:dashboard' %}" class="dropdown-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                                <i class="fas fa-home"></i>
+                                <span>หน้าหลัก</span>
+                            </a>
+                            <a href="{% url 'accounts:profile' %}" class="dropdown-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                                <i class="fas fa-user"></i>
+                                <span>ข้อมูลผู้ใช้</span>
+                            </a>
+                            <a href="{% url 'attendance:report' %}" class="dropdown-item {% if request.resolver_match.url_name == 'report' %}active{% endif %}">
+                                <i class="fas fa-history"></i>
+                                <span>ดูประวัติการเข้าเรียน</span>
+                            </a>
+                            <a href="{% url 'attendance:notifications' %}" class="dropdown-item {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+                                <i class="fas fa-bell"></i>
+                                <span>การแจ้งเตือน</span>
+                            </a>
+                            <a href="{% url 'attendance:leave_approval_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'leave_approval_list' or request.resolver_match.url_name == 'leave_approval_detail' %}active{% endif %}">
+                                <i class="fas fa-calendar-times"></i>
+                                <span>แจ้งลา</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{% url 'accounts:logout' %}" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>ออกจากระบบ</span>
+                            </a>
+                        {% else %}
+                            <!-- Student Menu -->
+                            <a href="{% url 'attendance:scan_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'scan_page' or request.resolver_match.url_name == 'home' %}active{% endif %}">
+                                <i class="fas fa-home"></i>
+                                <span>หน้าหลัก</span>
+                            </a>
+                            <a href="{% url 'attendance:scan_page' %}" class="dropdown-item {% if request.resolver_match.url_name == 'scan_page' %}active{% endif %}">
+                                <i class="fas fa-qrcode"></i>
+                                <span>สแกน QR Code</span>
+                            </a>
+                            <a href="{% url 'attendance:student_notifications' %}" class="dropdown-item {% if request.resolver_match.url_name == 'student_notifications' %}active{% endif %}">
+                                <i class="fas fa-bell"></i>
+                                <span>การแจ้งเตือน</span>
+                            </a>
+                            <a href="{% url 'attendance:student_leave_request_list' %}" class="dropdown-item {% if request.resolver_match.url_name == 'student_leave_request_list' or request.resolver_match.url_name == 'student_leave_request_create' %}active{% endif %}">
+                                <i class="fas fa-calendar-times"></i>
+                                <span>ขอลา</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{% url 'accounts:profile' %}" class="dropdown-item {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                                <i class="fas fa-user"></i>
+                                <span>ข้อมูลผู้ใช้</span>
+                            </a>
+                            <a href="{% url 'accounts:logout' %}" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>ออกจากระบบ</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <a href="{% url 'accounts:login' %}" class="header-login-btn">เข้าสู่ระบบ</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <main class="dashboard-main">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2025 ระบบบริหารจัดการการเรียน - ระบบเช็คชื่อด้วย QR Code</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dropdownMenu');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        }
+        
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            const dropdown = document.getElementById('dropdownMenu');
+            if (dropdown && !event.target.matches('.dropdown-toggle') && !event.target.closest('.dropdown-menu-container')) {
+                if (dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                }
+            }
+        }
+    </script>
+    <script src="{% static 'js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

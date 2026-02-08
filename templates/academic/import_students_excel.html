@@ -1,0 +1,115 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}โหลดข้อมูลผู้เรียนจาก Excel{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>โหลดข้อมูลผู้เรียนจาก Excel</h1>
+</div>
+
+<div class="form-container">
+    <form method="post" enctype="multipart/form-data" class="form" id="importForm">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="academic_year">ปีการศึกษา <span style="color: red;">*</span></label>
+            <select id="academic_year" name="academic_year" required>
+                <option value="">เลือกปีการศึกษา</option>
+                {% for year in academic_years %}
+                <option value="{{ year.id }}">{{ year.year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="semester_number">ภาคเรียน <span style="color: red;">*</span></label>
+            <select id="semester_number" name="semester_number" required>
+                <option value="">เลือกภาคเรียน</option>
+                <option value="1">ภาคเรียนที่ 1</option>
+                <option value="2">ภาคเรียนที่ 2</option>
+                <option value="3">ภาคฤดูร้อน</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="course">รายวิชา <span style="color: red;">*</span></label>
+            <select id="course" name="course" required>
+                <option value="">เลือกรายวิชา</option>
+                {% for course in teacher_courses %}
+                <option value="{{ course.id }}">{{ course.course_code }} - {{ course.course_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="section">กลุ่มเรียน <span style="color: red;">*</span></label>
+            <select id="section" name="section" required>
+                <option value="">เลือกกลุ่มเรียน</option>
+            </select>
+            <small class="form-text text-muted">กรุณาเลือกปีการศึกษา, ภาคเรียน, และรายวิชาก่อน</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="excel_file">ไฟล์ Excel <span style="color: red;">*</span></label>
+            <input type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls" required>
+            <small class="form-text text-muted">
+                รูปแบบไฟล์: Excel (.xlsx, .xls)<br>
+                คอลัมน์ที่ต้องการ: รหัสนักศึกษา, ชื่อ, นามสกุล<br>
+                <strong>หมายเหตุ:</strong> ถ้านักศึกษายังไม่มีบัญชีในระบบ ระบบจะสร้างบัญชีให้อัตโนมัติ (ชื่อ-นามสกุลจะเป็นค่าว่างจนกว่าจะลงทะเบียน)
+            </small>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">โหลดข้อมูล</button>
+            <a href="{% url 'academic:my_sections' %}" class="btn btn-secondary">กลับ</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const academicYearSelect = document.getElementById('academic_year');
+    const semesterSelect = document.getElementById('semester_number');
+    const courseSelect = document.getElementById('course');
+    const sectionSelect = document.getElementById('section');
+    
+    function loadSections() {
+        const academicYearId = academicYearSelect.value;
+        const semesterNumber = semesterSelect.value;
+        const courseId = courseSelect.value;
+        
+        // Clear section options
+        sectionSelect.innerHTML = '<option value="">เลือกกลุ่มเรียน</option>';
+        
+        if (!academicYearId || !semesterNumber || !courseId) {
+            return;
+        }
+        
+        // Fetch sections
+        fetch(`{% url 'academic:get_sections_by_course' %}?academic_year_id=${academicYearId}&semester_number=${semesterNumber}&course_id=${courseId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+                
+                data.sections.forEach(section => {
+                    const option = document.createElement('option');
+                    option.value = section.id;
+                    option.textContent = section.display;
+                    sectionSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading sections:', error);
+            });
+    }
+    
+    academicYearSelect.addEventListener('change', loadSections);
+    semesterSelect.addEventListener('change', loadSections);
+    courseSelect.addEventListener('change', loadSections);
+});
+</script>
+{% endblock %}
+

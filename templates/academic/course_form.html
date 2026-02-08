@@ -1,0 +1,664 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}{% if course %}แก้ไข{% else %}เพิ่ม{% endif %}รายวิชา{% endblock %}
+
+{% block extra_css %}
+<style>
+    .course-form-container {
+        max-width: 700px;
+        margin: 2rem auto;
+        padding: 2.5rem 3rem;
+    }
+    
+    .course-form-title {
+        text-align: center;
+        font-size: 1.75rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 2.5rem;
+    }
+    
+    .course-form {
+        background: white;
+        padding: 0;
+    }
+    
+    .form-row {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 1.75rem;
+        gap: 1.5rem;
+    }
+    
+    .form-row label {
+        min-width: 140px;
+        font-weight: 500;
+        color: #333;
+        text-align: left;
+        font-size: 1rem;
+        padding-top: 0.875rem;
+        flex-shrink: 0;
+    }
+    
+    .form-row .input-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    
+    .form-row input,
+    .form-row select {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+        background-color: white;
+        box-sizing: border-box;
+    }
+    
+    .form-row input:focus,
+    .form-row select:focus {
+        outline: none;
+        border-color: #0066cc;
+    }
+    
+    .form-row input::placeholder {
+        color: #999;
+    }
+    
+    .form-row .help-text {
+        display: block;
+        margin-top: 0.5rem;
+        color: #666;
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+    
+    .form-buttons {
+        display: flex;
+        gap: 1.25rem;
+        justify-content: center;
+        margin-top: 2.5rem;
+    }
+    
+    .btn-cancel {
+        background: #0066cc;
+        color: white;
+        padding: 0.875rem 2.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.3s;
+    }
+    
+    .btn-cancel:hover {
+        background: #0052a3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-confirm {
+        background: #0066cc;
+        color: white;
+        padding: 0.875rem 2.5rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .btn-confirm:hover {
+        background: #0052a3;
+    }
+    
+    @media (max-width: 768px) {
+        .course-form-container {
+            padding: 1.5rem;
+            max-width: 100%;
+        }
+        
+        .form-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .form-row label {
+            min-width: auto;
+            width: 100%;
+            padding-top: 0;
+        }
+        
+        .form-row .input-wrapper {
+            width: 100%;
+        }
+        
+        .form-row input,
+        .form-row select {
+            width: 100%;
+        }
+        
+        .form-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-cancel,
+        .btn-confirm {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="course-form-container">
+    <h1 class="course-form-title">{% if course %}แก้ไข{% else %}เพิ่ม{% endif %}รายวิชา</h1>
+    <form method="post" class="course-form">
+        {% csrf_token %}
+        <div class="form-row">
+            <label for="course_code">รหัสวิชา</label>
+            <div class="input-wrapper">
+                <input type="text" id="course_code" name="course_code" value="{{ course.course_code|default:'' }}" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="course_name">ชื่อวิชา</label>
+            <div class="input-wrapper">
+                <input type="text" id="course_name" name="course_name" value="{{ course.course_name|default:'' }}" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="credit">หน่วยกิต</label>
+            <div class="input-wrapper">
+                <input type="number" id="credit" name="credit" value="{{ course.credit|default:3 }}" min="1" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="section_id">กลุ่มเรียน</label>
+            <div class="input-wrapper">
+                <select id="section_id" name="section_id">
+                    <option value="">-- เลือกกลุ่มเรียน --</option>
+                    {% if existing_sections %}
+                        {% for section in existing_sections %}
+                        <option value="{{ section.id }}" {% if section.teacher_id_value %}data-teacher-id="{{ section.teacher_id_value }}"{% endif %}>
+                            {% if section.course %}{{ section.course.course_code }}{% else %}N/A{% endif %} - กลุ่ม {{ section.section_number|default:"-" }} 
+                            {% if section.semester and section.semester.academic_year %}({{ section.semester.academic_year.year }} - {{ section.semester.get_semester_number_display }}){% endif %}
+                            {% if section.room %} - ห้อง {{ section.room }}{% endif %}
+                            {% if section.course and section.course.id == course.id %}(กลุ่มเรียนของรายวิชานี้){% endif %}
+                        </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>ไม่มีกลุ่มเรียนในระบบ (จะสร้างใหม่เมื่อบันทึก)</option>
+                    {% endif %}
+                </select>
+                <small class="help-text">
+                    {% if course %}
+                        เลือกกลุ่มเรียนอื่นที่ต้องการเชื่อมโยงกับรายวิชานี้ หรือเว้นว่างไว้เพื่อไม่เปลี่ยนแปลง
+                    {% else %}
+                        เลือกกลุ่มเรียนที่ตั้งไว้แล้ว หรือเว้นว่างไว้เพื่อสร้างกลุ่มเรียนใหม่
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+        <div class="form-row">
+            <label for="time_room">เวลา/ห้องเรียน</label>
+            <div class="input-wrapper">
+                <input type="text" id="time_room" name="time_room" placeholder="เช่น จันทร์ 09:00-12:00 / ห้อง 101">
+            </div>
+        </div>
+        
+        <!-- จัดการอาจารย์ผู้สอน (สำหรับเพิ่มรายวิชาใหม่) -->
+        {% if not course and existing_sections and teachers %}
+        <div id="teacher-management-section" style="margin-top: 2.5rem; padding-top: 2rem; border-top: 2px solid #eee; display: none;">
+            <h3 style="font-size: 1.2rem; font-weight: 600; color: #333; margin-bottom: 1.5rem;">จัดการอาจารย์ผู้สอน</h3>
+            
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <div id="selected-section-info" style="margin-bottom: 1rem; padding: 1rem; background: white; border-radius: 4px; border: 1px solid #dee2e6;">
+                    <strong id="section-display-name"></strong>
+                </div>
+                
+                <div class="form-row" style="margin-bottom: 1rem;">
+                    <label for="selected_section_teacher" style="min-width: 140px;">เลือกอาจารย์ผู้สอน</label>
+                    <div class="input-wrapper" style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                        <select id="selected_section_teacher" name="selected_section_teacher" style="flex: 1;">
+                            <option value="none">-- ไม่กำหนดอาจารย์ --</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}">
+                                {{ teacher.get_full_name|default:teacher.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" id="add-teacher-btn" style="padding: 0.5rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; font-size: 0.9rem;" onclick="toggleAddTeacherForm()">
+                            <i class="fas fa-plus"></i> เพิ่มอาจารย์
+                        </button>
+                    </div>
+                </div>
+                <small class="help-text" style="display: block; margin-top: -0.5rem; margin-bottom: 1rem;">
+                    เลือกอาจารย์ผู้สอนสำหรับกลุ่มเรียนที่เลือก หรือเพิ่มอาจารย์ใหม่
+                </small>
+                
+                <!-- ฟอร์มเพิ่มอาจารย์ใหม่ -->
+                <div id="add-teacher-form" style="display: none; margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 4px; border: 1px solid #dee2e6;">
+                    <h4 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: #333;">เพิ่มอาจารย์ผู้สอนใหม่</h4>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">ชื่อผู้ใช้ (Username)</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_username" name="new_teacher_username" placeholder="เช่น teacher01" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">ชื่อ</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_first_name" name="new_teacher_first_name" placeholder="ชื่อ" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">นามสกุล</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_last_name" name="new_teacher_last_name" placeholder="นามสกุล" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">อีเมล</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="new_teacher_email" name="new_teacher_email" placeholder="email@example.com" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">รหัสอาจารย์</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_employee_id" name="new_teacher_employee_id" placeholder="เช่น T001" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">คณะ/ภาควิชา</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_department" name="new_teacher_department" placeholder="เช่น วิทยาการคอมพิวเตอร์" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button type="button" onclick="toggleAddTeacherForm()" style="padding: 0.5rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            ยกเลิก
+                        </button>
+                        <button type="button" onclick="addNewTeacher()" style="padding: 0.5rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-save"></i> บันทึก
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if course and sections %}
+        <div style="margin-top: 2.5rem; padding-top: 2rem; border-top: 2px solid #eee;">
+            <h3 style="font-size: 1.2rem; font-weight: 600; color: #333; margin-bottom: 1.5rem;">จัดการอาจารย์ผู้สอน</h3>
+            
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #333;">กลุ่มเรียน</th>
+                            <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #333;">อาจารย์ผู้สอนปัจจุบัน</th>
+                            <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #333;">เลือกอาจารย์ผู้สอน</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for section in sections %}
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td style="padding: 0.75rem;">
+                                <strong>กลุ่ม {{ section.section_number }}</strong>
+                                {% if section.room or section.schedule %}
+                                <br><small style="color: #666;">
+                                    {% if section.room %}ห้อง: {{ section.room }}{% endif %}
+                                    {% if section.schedule %} | {{ section.schedule }}{% endif %}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.75rem;">
+                                {% if section.teacher %}
+                                    {{ section.teacher.get_full_name|default:section.teacher.username }}
+                                {% else %}
+                                    <span style="color: #999;">ยังไม่กำหนดอาจารย์</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.75rem;">
+                                <select name="teacher_{{ section.id }}" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem;">
+                                    <option value="none">-- ไม่กำหนดอาจารย์ --</option>
+                                    {% for teacher in teachers %}
+                                    <option value="{{ teacher.id }}" {% if section.teacher and section.teacher.id == teacher.id %}selected{% endif %}>
+                                        {{ teacher.get_full_name|default:teacher.username }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" style="padding: 1rem; text-align: center; color: #999;">
+                                ยังไม่มีกลุ่มเรียนสำหรับรายวิชานี้
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div style="margin-top: 1rem; text-align: right;">
+                    <button type="button" id="add-teacher-btn-edit" onclick="toggleAddTeacherFormEdit()" style="padding: 0.5rem 1rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                        <i class="fas fa-plus"></i> เพิ่มอาจารย์
+                    </button>
+                </div>
+                
+                <!-- ฟอร์มเพิ่มอาจารย์ใหม่ (สำหรับแก้ไขรายวิชา) -->
+                <div id="add-teacher-form-edit" style="display: none; margin-top: 1.5rem; padding: 1.5rem; background: white; border-radius: 4px; border: 1px solid #dee2e6;">
+                    <h4 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: #333;">เพิ่มอาจารย์ผู้สอนใหม่</h4>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">ชื่อผู้ใช้ (Username)</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_username_edit" name="new_teacher_username_edit" placeholder="เช่น teacher01" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">ชื่อ</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_first_name_edit" name="new_teacher_first_name_edit" placeholder="ชื่อ" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">นามสกุล</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_last_name_edit" name="new_teacher_last_name_edit" placeholder="นามสกุล" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">อีเมล</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="new_teacher_email_edit" name="new_teacher_email_edit" placeholder="email@example.com" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">รหัสอาจารย์</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_employee_id_edit" name="new_teacher_employee_id_edit" placeholder="เช่น T001" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-bottom: 1rem;">
+                        <label style="min-width: 140px;">คณะ/ภาควิชา</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="new_teacher_department_edit" name="new_teacher_department_edit" placeholder="เช่น วิทยาการคอมพิวเตอร์" style="width: 100%;">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
+                        <button type="button" onclick="toggleAddTeacherFormEdit()" style="padding: 0.5rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            ยกเลิก
+                        </button>
+                        <button type="button" onclick="addNewTeacherEdit()" style="padding: 0.5rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            <i class="fas fa-save"></i> บันทึก
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="form-buttons">
+            <a href="{% url 'academic:course_list' %}" class="btn-cancel">ยกเลิก</a>
+            <button type="submit" class="btn-confirm">ยืนยัน</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle add teacher form (for add course page)
+function toggleAddTeacherForm() {
+    const form = document.getElementById('add-teacher-form');
+    if (form) {
+        const isHidden = form.style.display === 'none' || form.style.display === '';
+        form.style.display = isHidden ? 'block' : 'none';
+        
+        // Disable/enable required fields when form is shown/hidden
+        const requiredFields = form.querySelectorAll('input[type="text"], input[type="email"]');
+        requiredFields.forEach(field => {
+            if (isHidden) {
+                // Show form - remove disabled, add required only to username
+                field.disabled = false;
+                if (field.id === 'new_teacher_username') {
+                    field.required = true;
+                }
+            } else {
+                // Hide form - remove required, add disabled
+                field.required = false;
+                field.disabled = true;
+            }
+        });
+    }
+}
+
+// Toggle add teacher form (for edit course page)
+function toggleAddTeacherFormEdit() {
+    const form = document.getElementById('add-teacher-form-edit');
+    if (form) {
+        const isHidden = form.style.display === 'none' || form.style.display === '';
+        form.style.display = isHidden ? 'block' : 'none';
+        
+        // Disable/enable required fields when form is shown/hidden
+        const requiredFields = form.querySelectorAll('input[type="text"], input[type="email"]');
+        requiredFields.forEach(field => {
+            if (isHidden) {
+                // Show form - remove disabled, add required only to username
+                field.disabled = false;
+                if (field.id === 'new_teacher_username_edit') {
+                    field.required = true;
+                }
+            } else {
+                // Hide form - remove required, add disabled
+                field.required = false;
+                field.disabled = true;
+            }
+        });
+    }
+}
+
+// Add new teacher via AJAX
+function addNewTeacher() {
+    const username = document.getElementById('new_teacher_username').value.trim();
+    const firstName = document.getElementById('new_teacher_first_name').value.trim();
+    const lastName = document.getElementById('new_teacher_last_name').value.trim();
+    const email = document.getElementById('new_teacher_email').value.trim();
+    const employeeId = document.getElementById('new_teacher_employee_id').value.trim();
+    const department = document.getElementById('new_teacher_department').value.trim();
+    
+    if (!username) {
+        alert('กรุณากรอกชื่อผู้ใช้ (Username)');
+        return;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('action', 'add_teacher');
+    formData.append('username', username);
+    formData.append('first_name', firstName);
+    formData.append('last_name', lastName);
+    formData.append('email', email);
+    formData.append('employee_id', employeeId);
+    formData.append('department', department);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    // Send AJAX request
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new teacher to dropdown
+            const select = document.getElementById('selected_section_teacher');
+            const option = document.createElement('option');
+            option.value = data.teacher_id;
+            option.textContent = data.teacher_name;
+            select.appendChild(option);
+            select.value = data.teacher_id;
+            
+            // Clear form
+            document.getElementById('new_teacher_username').value = '';
+            document.getElementById('new_teacher_first_name').value = '';
+            document.getElementById('new_teacher_last_name').value = '';
+            document.getElementById('new_teacher_email').value = '';
+            document.getElementById('new_teacher_employee_id').value = '';
+            document.getElementById('new_teacher_department').value = '';
+            
+            // Hide form
+            toggleAddTeacherForm();
+            
+            alert('เพิ่มอาจารย์สำเร็จ: ' + data.teacher_name);
+        } else {
+            alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถเพิ่มอาจารย์ได้'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    });
+}
+
+// Add new teacher via AJAX (for edit course page)
+function addNewTeacherEdit() {
+    const username = document.getElementById('new_teacher_username_edit').value.trim();
+    const firstName = document.getElementById('new_teacher_first_name_edit').value.trim();
+    const lastName = document.getElementById('new_teacher_last_name_edit').value.trim();
+    const email = document.getElementById('new_teacher_email_edit').value.trim();
+    const employeeId = document.getElementById('new_teacher_employee_id_edit').value.trim();
+    const department = document.getElementById('new_teacher_department_edit').value.trim();
+    
+    if (!username) {
+        alert('กรุณากรอกชื่อผู้ใช้ (Username)');
+        return;
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('action', 'add_teacher');
+    formData.append('username', username);
+    formData.append('first_name', firstName);
+    formData.append('last_name', lastName);
+    formData.append('email', email);
+    formData.append('employee_id', employeeId);
+    formData.append('department', department);
+    formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    
+    // Send AJAX request
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new teacher to all dropdowns
+            const selects = document.querySelectorAll('select[name^="teacher_"]');
+            selects.forEach(select => {
+                const option = document.createElement('option');
+                option.value = data.teacher_id;
+                option.textContent = data.teacher_name;
+                select.appendChild(option);
+            });
+            
+            // Clear form
+            document.getElementById('new_teacher_username_edit').value = '';
+            document.getElementById('new_teacher_first_name_edit').value = '';
+            document.getElementById('new_teacher_last_name_edit').value = '';
+            document.getElementById('new_teacher_email_edit').value = '';
+            document.getElementById('new_teacher_employee_id_edit').value = '';
+            document.getElementById('new_teacher_department_edit').value = '';
+            
+            // Hide form
+            toggleAddTeacherFormEdit();
+            
+            alert('เพิ่มอาจารย์สำเร็จ: ' + data.teacher_name);
+        } else {
+            alert('เกิดข้อผิดพลาด: ' + (data.error || 'ไม่สามารถเพิ่มอาจารย์ได้'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sectionSelect = document.getElementById('section_id');
+    const teacherManagementSection = document.getElementById('teacher-management-section');
+    const sectionDisplayName = document.getElementById('section-display-name');
+    const selectedSectionTeacher = document.getElementById('selected_section_teacher');
+    
+    if (sectionSelect && teacherManagementSection) {
+        sectionSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const sectionId = this.value;
+            
+            if (sectionId) {
+                // Show teacher management section
+                teacherManagementSection.style.display = 'block';
+                
+                // Update section display name
+                sectionDisplayName.textContent = selectedOption.textContent.trim();
+                
+                // Update teacher select name to match section_id
+                if (selectedSectionTeacher) {
+                    selectedSectionTeacher.name = 'teacher_' + sectionId;
+                    
+                    // Set current teacher if section has one
+                    const currentTeacherId = selectedOption.getAttribute('data-teacher-id');
+                    if (currentTeacherId) {
+                        selectedSectionTeacher.value = currentTeacherId;
+                    } else {
+                        selectedSectionTeacher.value = 'none';
+                    }
+                }
+            } else {
+                // Hide teacher management section
+                teacherManagementSection.style.display = 'none';
+            }
+        });
+        
+        // Trigger change event on page load if section is already selected
+        if (sectionSelect.value) {
+            sectionSelect.dispatchEvent(new Event('change'));
+        }
+    }
+    
+    // Prevent form submission if hidden required fields exist
+    const form = document.querySelector('.course-form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Disable all hidden required fields before submit
+            const hiddenForms = document.querySelectorAll('#add-teacher-form[style*="none"], #add-teacher-form-edit[style*="none"]');
+            hiddenForms.forEach(hiddenForm => {
+                const fields = hiddenForm.querySelectorAll('input[required]');
+                fields.forEach(field => {
+                    field.required = false;
+                    field.disabled = true;
+                });
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+

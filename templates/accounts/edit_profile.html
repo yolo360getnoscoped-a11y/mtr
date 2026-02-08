@@ -1,0 +1,373 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}แก้ไขโปรไฟล์{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-edit-page {
+    background-color: #f5f5f5;
+    min-height: calc(100vh - 200px);
+    padding: 2rem 0;
+}
+
+.profile-edit-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.profile-edit-container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 3rem;
+    background: #f5f5f5;
+    padding: 2rem;
+}
+
+.profile-edit-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+}
+
+.profile-edit-group {
+    margin-bottom: 1.5rem;
+}
+
+.profile-edit-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+    font-size: 1rem;
+}
+
+.profile-edit-group input,
+.profile-edit-group select,
+.profile-edit-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: white;
+}
+
+.profile-edit-group input[type="file"] {
+    padding: 0.5rem;
+}
+
+.profile-image-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.profile-image-circle {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.profile-image-circle img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-image-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 3rem;
+}
+
+.profile-image-upload {
+    width: 100%;
+    text-align: center;
+}
+
+.profile-image-upload input[type="file"] {
+    display: none;
+}
+
+.profile-image-upload label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: #0099ff;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.profile-image-upload label:hover {
+    background-color: #0088e6;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    display: inline-block;
+}
+
+.btn-primary {
+    background-color: #0066cc;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0052a3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+@media (max-width: 968px) {
+    .profile-edit-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-image-section {
+        order: -1;
+    }
+    
+    .profile-image-circle {
+        width: 200px;
+        height: 200px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-edit-page">
+    <div class="profile-edit-content">
+        <h1 class="page-title">แก้ไขโปรไฟล์</h1>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" style="margin-bottom: 1rem;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="post" enctype="multipart/form-data" class="profile-edit-container">
+            {% csrf_token %}
+            
+            <div class="profile-edit-section">
+                <div class="profile-edit-group">
+                    <label for="first_name">ชื่อ</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+                
+                <div class="profile-edit-group">
+                    <label for="last_name">นามสกุล</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+                
+                {% if user.is_teacher and profile %}
+                <div class="profile-edit-group">
+                    <label for="employee_id">รหัสอาจารย์</label>
+                    <input type="text" id="employee_id" name="employee_id" value="{{ profile.employee_id|default:'' }}">
+                </div>
+                {% elif user.is_student and profile %}
+                <div class="profile-edit-group">
+                    <label for="student_id">รหัสนักศึกษา</label>
+                    <input type="text" id="student_id" name="student_id" value="{{ profile.student_id|default:'' }}" readonly>
+                </div>
+                {% endif %}
+                
+                {% if user.is_teacher and profile %}
+                <div class="profile-edit-group">
+                    <label for="faculty_id">คณะ</label>
+                    <select id="faculty_id" name="faculty_id">
+                        <option value="">-- เลือกคณะ --</option>
+                        {% for faculty in faculties %}
+                            <option value="{{ faculty.id }}" {% if profile.teacher_faculty and profile.teacher_faculty.id == faculty.id %}selected{% endif %}>{{ faculty.faculty_code }} - {{ faculty.faculty_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="profile-edit-group">
+                    <label for="major_id">สาขา</label>
+                    <select id="major_id" name="major_id">
+                        <option value="">-- เลือกสาขา --</option>
+                        {% for major in majors %}
+                            <option value="{{ major.id }}" data-faculty-id="{{ major.faculty.id }}" style="display: none;" {% if profile.student_major and profile.student_major.id == major.id %}selected{% endif %}>{{ major.major_code }} - {{ major.major_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                {% if user.is_student and profile %}
+                <div class="profile-edit-group">
+                    <label for="faculty_id">คณะ</label>
+                    <select id="faculty_id" name="faculty_id" onchange="filterMajors()">
+                        <option value="">-- เลือกคณะ --</option>
+                        {% for faculty in faculties %}
+                            <option value="{{ faculty.id }}" {% if profile.student_major and profile.student_major.faculty and profile.student_major.faculty.id == faculty.id %}selected{% endif %}>{{ faculty.faculty_code }} - {{ faculty.faculty_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="profile-edit-group">
+                    <label for="major_id">สาขา</label>
+                    <select id="major_id" name="major_id">
+                        <option value="">-- เลือกสาขา --</option>
+                        {% for major in majors %}
+                            <option value="{{ major.id }}" data-faculty-id="{{ major.faculty.id }}" style="display: none;" {% if profile.student_major and profile.student_major.id == major.id %}selected{% endif %}>{{ major.major_code }} - {{ major.major_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                
+                {% if user.is_teacher %}
+                <div class="profile-edit-group">
+                    <label for="position">ตำแหน่ง</label>
+                    <input type="text" id="position" value="อาจารย์" readonly>
+                </div>
+                {% endif %}
+                
+                <div class="profile-edit-group">
+                    <label for="email">อีเมลมหาวิทยาลัย</label>
+                    <input type="email" id="email" name="email" value="{{ user.email|default:'' }}" required>
+                </div>
+                
+                <div class="profile-edit-group">
+                    <label for="phone">เบอร์โทร</label>
+                    <input type="text" id="phone" name="phone" value="{{ user.phone|default:'' }}">
+                </div>
+                
+                <div class="form-actions">
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-secondary">ยกเลิก</a>
+                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                </div>
+            </div>
+            
+            <div class="profile-image-section">
+                <div class="profile-image-circle" id="profileImagePreview">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="Profile Picture" id="previewImg">
+                    {% else %}
+                        <div class="profile-image-placeholder" id="previewPlaceholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="profile-image-upload">
+                    <input type="file" id="profile_picture" name="profile_picture" accept="image/*" onchange="previewImage(this)">
+                    <label for="profile_picture">
+                        <i class="fas fa-camera"></i> เลือกรูปภาพ
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function previewImage(input) {
+    const preview = document.getElementById('previewImg');
+    const placeholder = document.getElementById('previewPlaceholder');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            if (!preview) {
+                // Create img element if it doesn't exist
+                const img = document.createElement('img');
+                img.id = 'previewImg';
+                img.src = e.target.result;
+                img.alt = 'Profile Picture';
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.borderRadius = '50%';
+                img.style.objectFit = 'cover';
+                
+                const circle = document.getElementById('profileImagePreview');
+                if (placeholder) {
+                    placeholder.remove();
+                }
+                circle.appendChild(img);
+            } else {
+                preview.src = e.target.result;
+            }
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function filterMajors() {
+    const facultySelect = document.getElementById('faculty_id');
+    const majorSelect = document.getElementById('major_id');
+    if (!facultySelect || !majorSelect) return;
+    
+    const selectedFacultyId = facultySelect.value;
+    
+    // Reset major selection if faculty changed
+    if (majorSelect.value) {
+        const currentMajorFacultyId = majorSelect.options[majorSelect.selectedIndex]?.getAttribute('data-faculty-id');
+        if (currentMajorFacultyId !== selectedFacultyId) {
+            majorSelect.value = '';
+        }
+    }
+    
+    // Show/hide majors based on selected faculty
+    const majorOptions = majorSelect.querySelectorAll('option');
+    majorOptions.forEach(option => {
+        if (option.value === '') {
+            option.style.display = 'block';
+        } else {
+            const majorFacultyId = option.getAttribute('data-faculty-id');
+            if (selectedFacultyId === '' || majorFacultyId === selectedFacultyId) {
+                option.style.display = 'block';
+            } else {
+                option.style.display = 'none';
+            }
+        }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    filterMajors();
+});
+</script>
+{% endblock %}
+

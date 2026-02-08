@@ -1,0 +1,35 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}กลุ่มเรียนของฉัน{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>กลุ่มเรียนของฉัน</h1>
+    <a href="{% url 'academic:import_students_excel' %}" class="btn btn-primary">โหลดข้อมูลผู้เรียนจาก Excel</a>
+</div>
+
+<div class="cards-grid">
+    {% for section in sections %}
+    <div class="card">
+        <div class="card-header">
+            <h3>{{ section.course.course_code }} - {{ section.course.course_name }}</h3>
+        </div>
+        <div class="card-body">
+            <p><strong>กลุ่ม:</strong> {{ section.section_number }}</p>
+            <p><strong>ภาคเรียน:</strong> {{ section.semester }}</p>
+            <p><strong>จำนวนนักศึกษา:</strong> {{ section.enrolled_count }}/{{ section.capacity }}</p>
+            {% if section.room %}
+                <p><strong>ห้อง:</strong> {{ section.room }}</p>
+            {% endif %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'academic:manage_enrollment' section.id %}" class="btn btn-sm btn-secondary">จัดการนักศึกษา</a>
+            <a href="{% url 'attendance:create_qr' section.id %}" class="btn btn-sm btn-primary">สร้าง QR Code</a>
+        </div>
+    </div>
+    {% empty %}
+    <p>คุณยังไม่มีกลุ่มเรียนที่สอน</p>
+    {% endfor %}
+</div>
+{% endblock %}
+

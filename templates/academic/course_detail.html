@@ -1,0 +1,181 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}รายละเอียดรายวิชา - {{ course.course_code }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>รายละเอียดรายวิชา</h1>
+    <div style="margin-top: 0.5rem;">
+        <a href="{% url 'academic:course_list' %}" class="btn btn-secondary">กลับ</a>
+        <a href="{% url 'academic:course_edit' course.id %}" class="btn btn-edit">แก้ไข</a>
+    </div>
+</div>
+
+<div class="course-detail-container">
+    <!-- Course Basic Info -->
+    <div class="info-card">
+        <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 0.5rem;">
+            ข้อมูลรายวิชา
+        </h2>
+        <table class="detail-table">
+            <tr>
+                <th>รหัสวิชา</th>
+                <td>{{ course.course_code }}</td>
+            </tr>
+            <tr>
+                <th>ชื่อวิชา</th>
+                <td>{{ course.course_name }}</td>
+            </tr>
+            <tr>
+                <th>หน่วยกิต</th>
+                <td>{{ course.credit }}</td>
+            </tr>
+            <tr>
+                <th>รายละเอียด</th>
+                <td>{{ course.description|default:"-" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Course Statistics -->
+    <div class="info-card">
+        <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 0.5rem;">
+            สถิติ
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+            <div class="stat-box">
+                <div class="stat-label">จำนวนกลุ่มเรียน</div>
+                <div class="stat-value">{{ sections_with_info|length }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">จำนวนอาจารย์ผู้สอน</div>
+                <div class="stat-value">{{ teachers|length }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">จำนวนนักเรียนทั้งหมด</div>
+                <div class="stat-value">{{ total_students }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Teachers -->
+    {% if teachers %}
+    <div class="info-card">
+        <h2 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #0066cc; padding-bottom: 0.5rem;">
+            อาจารย์ผู้สอน
+        </h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            {% for teacher in teachers %}
+            <div class="teacher-badge">
+                {{ teacher.get_full_name|default:teacher.username }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<style>
+.course-detail-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.info-card {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.detail-table th {
+    width: 200px;
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.detail-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+    color: #555;
+}
+
+.stat-box {
+    background: linear-gradient(135deg, #0066cc 0%, #0099ff 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.teacher-badge {
+    background: #0066cc;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.95rem;
+}
+
+.btn-view {
+    background: #0066cc;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    display: inline-block;
+    transition: background 0.3s;
+}
+
+.btn-view:hover {
+    background: #0052a3;
+    color: white;
+    text-decoration: none;
+}
+
+@media (max-width: 768px) {
+    .course-detail-container {
+        padding: 1rem;
+    }
+    
+    .info-card {
+        padding: 1.5rem;
+    }
+    
+    .detail-table th,
+    .detail-table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .detail-table th {
+        background: #0066cc;
+        color: white;
+        margin-top: 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+

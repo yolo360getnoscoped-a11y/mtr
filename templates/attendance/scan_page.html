@@ -1,0 +1,298 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}สแกน QR Code{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scan-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        text-align: center;
+    }
+    #video {
+        width: 100%;
+        max-width: 500px;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    #canvas {
+        display: none;
+    }
+    .scan-result {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    .scan-result.success {
+        background: #d4edda;
+        color: #155724;
+    }
+    .scan-result.error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scan-container">
+    <h1>สแกน QR Code เพื่อเช็คชื่อ</h1>
+    <div id="video-container">
+        <video id="video" autoplay playsinline></video>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div id="result"></div>
+    <button id="start-scan" class="btn btn-primary">เริ่มสแกน</button>
+    <button id="stop-scan" class="btn btn-secondary" style="display: none;">หยุดสแกน</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const startButton = document.getElementById('start-scan');
+    const stopButton = document.getElementById('stop-scan');
+    const resultDiv = document.getElementById('result');
+    let stream = null;
+    let scanning = false;
+
+    startButton.addEventListener('click', startScan);
+    stopButton.addEventListener('click', stopScan);
+
+    function showError(message, suggestion = '') {
+        resultDiv.innerHTML = '<div class="scan-result error">' + message + (suggestion ? '<br><small>' + suggestion + '</small>' : '') + '</div>';
+    }
+
+    function getLegacyGetUserMedia() {
+        return navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+    }
+
+    async function requestModernStream() {
+        // Try to request the environment (rear) camera first (mobile),
+        // then fall back to any available camera for desktops.
+        try {
+            return await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        } catch (e) {
+            // Fallback to default camera
+            return await navigator.mediaDevices.getUserMedia({ video: true });
+        }
+    }
+
+    function requestLegacyStream() {
+        return new Promise((resolve, reject) => {
+            const legacyGetUserMedia = getLegacyGetUserMedia();
+            if (!legacyGetUserMedia) {
+                reject(new Error('getUserMedia is not supported on this device or browser.'));
+                return;
+            }
+            legacyGetUserMedia.call(
+                navigator,
+                { video: { facingMode: 'environment' } },
+                resolve,
+                reject
+            );
+        });
+    }
+
+    function isSecureContext() {
+        // Treat common local hostnames as secure for development (localhost, 127.0.0.1, ::1, 0.0.0.0)
+        const host = location.hostname;
+        const localhostHosts = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
+        return window.isSecureContext || location.protocol === 'https:' || localhostHosts.includes(host);
+    }
+
+    async function startScan() {
+        try {
+            if (!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function')) {
+                if (!isSecureContext()) {
+                    throw new Error('การเข้าถึงกล้องจำเป็นต้องใช้งานผ่าน HTTPS หรือโดเมน localhost');
+                }
+                stream = await requestLegacyStream();
+            } else {
+                stream = await requestModernStream();
+            }
+            video.srcObject = stream;
+            // Mute and attempt to play the video element explicitly to satisfy
+            // browser autoplay policies — user already initiated via click.
+            try {
+                video.muted = true;
+                video.playsInline = true;
+                await video.play();
+            } catch (playError) {
+                // If play() fails, still proceed — some browsers require user gesture.
+                console.warn('video.play() failed:', playError);
+            }
+
+            startButton.style.display = 'none';
+            stopButton.style.display = 'inline-block';
+            scanning = true;
+            scanQR();
+        } catch (err) {
+            let suggestion = '';
+            if (!isSecureContext()) {
+                suggestion = 'โปรดเข้าถึงผ่าน HTTPS (เช่น ใช้ ngrok หรือ reverse proxy) หรือเพิ่ม URL นี้ใน "Insecure origins treated as secure" ของเบราว์เซอร์สำหรับการทดสอบ';
+            } else if (!getLegacyGetUserMedia() && !(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function')) {
+                suggestion = 'อัปเดตเบราว์เซอร์หรือใช้ Chrome/Firefox เวอร์ชันล่าสุดที่รองรับการใช้งานกล้องบนเว็บ';
+            }
+            showError('ไม่สามารถเข้าถึงกล้องได้: ' + err.message, suggestion);
+        }
+    }
+
+    function stopScan() {
+        scanning = false;
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+        startButton.style.display = 'inline-block';
+        stopButton.style.display = 'none';
+        resultDiv.innerHTML = '';
+    }
+
+    function scanQR() {
+        if (!scanning) return;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (code) {
+                processQRCode(code.data);
+                return; // Stop scanning after successful scan
+            }
+        }
+
+        if (scanning) {
+            requestAnimationFrame(scanQR);
+        }
+    }
+
+    async function processQRCode(qrDataString) {
+        stopScan();
+        resultDiv.innerHTML = '<div class="scan-result">กำลังประมวลผล...</div>';
+
+        try {
+            // Parse QR code data: format is "ATTENDANCE:session_id:section_id"
+            let session_id = null;
+            let qr_data = qrDataString;
+            
+            // Try to parse if it's in the expected format
+            if (qrDataString.startsWith('ATTENDANCE:')) {
+                const parts = qrDataString.split(':');
+                if (parts.length >= 2) {
+                    session_id = parseInt(parts[1]);
+                    qr_data = qrDataString;
+                }
+            } else {
+                // Try to parse as JSON (for backward compatibility)
+                try {
+                    const qrData = JSON.parse(qrDataString);
+                    session_id = qrData.session_id;
+                    qr_data = qrData.data || qrData.token || qrDataString;
+                } catch (e) {
+                    resultDiv.innerHTML = '<div class="scan-result error">QR Code ไม่ถูกต้อง</div>';
+                    setTimeout(() => {
+                        startScan();
+                    }, 2000);
+                    return;
+                }
+            }
+            
+            if (!session_id) {
+                resultDiv.innerHTML = '<div class="scan-result error">ไม่สามารถอ่าน QR Code ได้</div>';
+                setTimeout(() => {
+                    startScan();
+                }, 2000);
+                return;
+            }
+            
+            // Get CSRF token from cookie
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            
+            const response = await fetch('/attendance/scan-qr/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    data: qr_data,
+                    session_id: session_id
+                })
+            });
+
+            // Defensive parsing: server may return HTML (login page or error page)
+            const contentType = response.headers.get('content-type') || '';
+            let data = null;
+
+            if (contentType.includes('application/json')) {
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    const text = await response.text();
+                    console.error('Failed to parse JSON response:', jsonErr, text);
+                    showError('Server returned invalid JSON. See console for details.');
+                    return;
+                }
+            } else {
+                // Received non-JSON (likely HTML) — capture text for debugging
+                const text = await response.text();
+                console.warn('Non-JSON response from /attendance/scan-qr/:', response.status, text);
+                // Common causes: redirect to login (not authenticated) or CSRF error
+                let hint = '';
+                if (response.status === 403 || response.status === 401) {
+                    hint = ' (อาจเป็นเพราะการหมดอายุของ session หรือปัญหา CSRF)';
+                }
+                showError('เซิร์ฟเวอร์ตอบกลับด้วยหน้า HTML ไม่ใช่ JSON ' + hint, 'ดูคอนโซลสำหรับรายละเอียด');
+                return;
+            }
+
+            if (response.ok && data && data.success) {
+                resultDiv.innerHTML = '<div class="scan-result success">' + data.message + '</div>';
+                setTimeout(() => {
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    }
+                }, 1000);
+            } else if (data) {
+                // Handle expired QR code with special message
+                if (data.status === 'expired' && data.record_id) {
+                    window.location.href = '/attendance/scan-expired/' + data.record_id + '/';
+                } else {
+                    const msg = data.message || ('Server error: ' + (response.status || 'unknown'));
+                    resultDiv.innerHTML = '<div class="scan-result error">' + msg + '</div>';
+                    setTimeout(() => {
+                        startScan();
+                    }, 2000);
+                }
+            } else {
+                showError('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์', 'HTTP ' + response.status);
+            }
+        } catch (error) {
+            resultDiv.innerHTML = '<div class="scan-result error">เกิดข้อผิดพลาด: ' + error.message + '</div>';
+            setTimeout(() => {
+                startScan();
+            }, 2000);
+        }
+    }
+</script>
+{% endblock %}
+

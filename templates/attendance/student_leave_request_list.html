@@ -1,0 +1,206 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}ขอลา{% endblock %}
+
+{% block extra_css %}
+<style>
+.leave-request-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.btn-create {
+    background-color: #0066cc;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-create:hover {
+    background-color: #0052a3;
+}
+
+.filter-section {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.filter-section form {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.filter-section select {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.filter-section button {
+    padding: 0.5rem 1rem;
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.table-wrapper {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow-x: auto;
+}
+
+.leave-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leave-table th,
+.leave-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.leave-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.leave-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.no-data {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+}
+
+.btn-view {
+    color: #0066cc;
+    text-decoration: none;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-view:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="leave-request-container">
+    <div class="page-header">
+        <h1 class="page-title">ขอลา</h1>
+        <a href="{% url 'attendance:student_leave_request_create' %}" class="btn-create">
+            <i class="fas fa-plus"></i> ขอลาใหม่
+        </a>
+    </div>
+
+    <div class="filter-section">
+        <form method="get">
+            <label for="status">กรองตามสถานะ:</label>
+            <select name="status" id="status">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>ทั้งหมด</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>รออนุมัติ</option>
+                <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>อนุมัติ</option>
+                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>ไม่อนุมัติ</option>
+            </select>
+            <button type="submit">กรอง</button>
+        </form>
+    </div>
+
+    <div class="table-wrapper">
+        {% if leave_requests %}
+        <table class="leave-table">
+            <thead>
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>วิชา</th>
+                    <th>กลุ่มเรียน</th>
+                    <th>วันที่ลา</th>
+                    <th>ประเภทการลา</th>
+                    <th>สถานะ</th>
+                    <th>วันที่ส่ง</th>
+                    <th>อาจารย์ผู้ตรวจ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in leave_requests %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ leave.section.course.course_name }}</td>
+                    <td>{{ leave.section.section_number }}</td>
+                    <td>{{ leave.leave_date|date:"d/m/Y" }}</td>
+                    <td>{{ leave.get_leave_type_display }}</td>
+                    <td>
+                        <span class="status-badge {{ leave.get_status_class }}">
+                            {{ leave.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ leave.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if leave.teacher %}
+                            {{ leave.teacher.get_full_name|default:leave.teacher.username }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data">ยังไม่มีการขอลา</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

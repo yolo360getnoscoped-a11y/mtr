@@ -1,0 +1,220 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}การแจ้งเตือน{% endblock %}
+
+{% block content %}
+<h1 class="page-title">แจ้งเตือน</h1>
+
+<div class="notifications-container">
+    <!-- Leave Requests Section -->
+    <div class="section-card">
+        <h2>การแจ้งลาล่าสุด</h2>
+        {% if leave_requests %}
+        <div class="table-wrapper">
+            <table class="notifications-table">
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>ชื่อนักศึกษา</th>
+                        <th>รหัสนักศึกษา</th>
+                        <th>สาขา</th>
+                        <th>วิชา</th>
+                        <th>รหัสวิชา</th>
+                        <th>วันที่</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave in leave_requests|slice:":10" %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ leave.student.get_full_name|default:leave.student.username }}</td>
+                        <td>
+                            {% if leave.student.student_profile %}
+                                {{ leave.student.student_profile.student_id }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if leave.student.student_profile %}
+                                {{ leave.student.student_profile.major|default:"-" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ leave.section.course.course_name }}</td>
+                        <td>{{ leave.section.course.course_code }}</td>
+                        <td>{{ leave.leave_date|date:"d/m/y" }}</td>
+                        <td>
+                            <span class="status-badge {{ leave.get_status_class }}">
+                                {{ leave.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">ยังไม่มีการแจ้งลา</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Attendance Sessions -->
+    <div class="section-card">
+        <h2>เซสชันเช็คชื่อล่าสุด</h2>
+        {% if recent_sessions %}
+        <div class="table-wrapper">
+            <table class="notifications-table">
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>วิชา</th>
+                        <th>รหัสวิชา</th>
+                        <th>วันที่</th>
+                        <th>เวลา</th>
+                        <th>จำนวนนักศึกษา</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in recent_sessions|slice:":10" %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ session.section.course.course_name }}</td>
+                        <td>{{ session.section.course.course_code }}</td>
+                        <td>{{ session.session_date|date:"d/m/y" }}</td>
+                        <td>{{ session.session_time|time:"H:i" }}</td>
+                        <td>
+                            {% with count=session.records.count %}
+                                {{ count }} / {{ session.section.enrolled_count }}
+                            {% endwith %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">ยังไม่มีเซสชันเช็คชื่อ</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="action-buttons">
+    <a href="{% url 'attendance:leave_approval_list' %}" class="btn btn-primary">ไปหน้าอนุมัติการลา</a>
+    <a href="{% url 'teacher:dashboard' %}" class="btn btn-secondary">หน้าหลัก</a>
+</div>
+
+<style>
+.notifications-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.section-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section-card h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    color: #333;
+}
+
+.notifications-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.notifications-table thead {
+    background-color: #e7f3ff;
+}
+
+.notifications-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #0066cc;
+}
+
+.notifications-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.notifications-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.no-data {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background-color: #0066cc;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0052a3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+</style>
+{% endblock %}
+

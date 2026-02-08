@@ -1,0 +1,85 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}จัดการนักศึกษา{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>จัดการนักศึกษา - {{ section }}</h1>
+</div>
+
+<div class="form-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>เพิ่มนักศึกษา</h2>
+        <a href="{% url 'academic:import_students_excel' %}" class="btn btn-primary">โหลดข้อมูลจาก Excel</a>
+    </div>
+    <form method="post" class="form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add">
+        <div class="form-group">
+            <label for="student_id">เลือกนักศึกษา</label>
+            <select id="student_id" name="student_id" required>
+                <option value="">เลือกนักศึกษา</option>
+                {% for student in available_students %}
+                <option value="{{ student.id }}">
+                    {{ student.get_full_name|default:student.username }} 
+                    {% if student.profile and student.profile.student_id %}
+                        ({{ student.profile.student_id }})
+                    {% elif student.student_profile and student.student_profile.student_id %}
+                        ({{ student.student_profile.student_id }})
+                    {% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">เพิ่มนักศึกษา</button>
+    </form>
+</div>
+
+<div class="table-container">
+    <h2>นักศึกษาที่ลงทะเบียนแล้ว ({{ enrollments.count }}/{{ section.capacity }})</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ชื่อนักศึกษา</th>
+                <th>รหัสนักศึกษา</th>
+                <th>วันที่ลงทะเบียน</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for enrollment in enrollments %}
+            <tr>
+                <td>{{ enrollment.student.get_full_name|default:enrollment.student.username }}</td>
+                <td>
+                    {% if enrollment.student.profile and enrollment.student.profile.student_id %}
+                        {{ enrollment.student.profile.student_id }}
+                    {% elif enrollment.student.student_profile and enrollment.student.student_profile.student_id %}
+                        {{ enrollment.student.student_profile.student_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ enrollment.enrolled_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <form method="post" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="student_id" value="{{ enrollment.student.id }}">
+                        <button type="submit" class="btn btn-sm btn-secondary" onclick="return confirm('ยืนยันการลบนักศึกษาออกจากกลุ่มเรียน?')">ลบ</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">ยังไม่มีนักศึกษาลงทะเบียน</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="form-actions">
+    <a href="{% url 'academic:my_sections' %}" class="btn btn-secondary">กลับ</a>
+</div>
+{% endblock %}
+

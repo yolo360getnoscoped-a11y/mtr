@@ -1,0 +1,66 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}{% if section %}แก้ไข{% else %}เพิ่ม{% endif %}กลุ่มเรียน{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% if section %}แก้ไข{% else %}เพิ่ม{% endif %}กลุ่มเรียน</h1>
+    <form method="post" class="form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="course">รายวิชา <span style="color: red;">*</span></label>
+            <select id="course" name="course" required>
+                <option value="">เลือกรายวิชา</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}" {% if section and section.course.id == course.id %}selected{% endif %}>
+                    {{ course.course_code }} - {{ course.course_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="semester">ภาคเรียน <span style="color: red;">*</span></label>
+            <select id="semester" name="semester" required>
+                <option value="">เลือกภาคเรียน</option>
+                {% for semester in semesters %}
+                <option value="{{ semester.id }}" {% if section and section.semester.id == semester.id %}selected{% endif %}>
+                    {{ semester }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="section_number">กลุ่มเรียน <span style="color: red;">*</span></label>
+            <input type="text" id="section_number" name="section_number" value="{{ section.section_number|default:'' }}" required>
+        </div>
+        <div class="form-group">
+            <label for="teacher">อาจารย์ผู้สอน</label>
+            <select id="teacher" name="teacher">
+                <option value="">ยังไม่ได้กำหนด</option>
+                {% for teacher in teachers %}
+                <option value="{{ teacher.id }}" {% if section and section.teacher and section.teacher.id == teacher.id %}selected{% endif %}>
+                    {{ teacher.get_full_name|default:teacher.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="capacity">จำนวนรับ</label>
+            <input type="number" id="capacity" name="capacity" value="{{ section.capacity|default:30 }}" min="1" required>
+        </div>
+        <div class="form-group">
+            <label for="room">ห้องเรียน</label>
+            <input type="text" id="room" name="room" value="{{ section.room|default:'' }}">
+        </div>
+        <div class="form-group">
+            <label for="schedule">ตารางเรียน</label>
+            <input type="text" id="schedule" name="schedule" value="{{ section.schedule|default:'' }}" placeholder="เช่น จันทร์ 09:00-12:00">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">บันทึก</button>
+            <a href="{% url 'academic:section_list' %}" class="btn btn-secondary">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

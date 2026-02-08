@@ -1,0 +1,33 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}ลบกลุ่มเรียน{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px;">
+    <h1>ยืนยันการลบกลุ่มเรียน</h1>
+    
+    <div class="alert" style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+        <strong>คำเตือน:</strong> คุณแน่ใจหรือไม่ว่าต้องการลบกลุ่มเรียน <strong>{{ section }}</strong>?
+        <br>การดำเนินการนี้จะลบข้อมูลการลงทะเบียนและการเข้าเรียนทั้งหมดที่เกี่ยวข้อง
+    </div>
+    
+    <div class="info-box" style="margin-bottom: 2rem;">
+        <h3>ข้อมูลกลุ่มเรียนที่จะถูกลบ:</h3>
+        <p><strong>รหัสวิชา:</strong> {{ section.course.course_code }}</p>
+        <p><strong>ชื่อวิชา:</strong> {{ section.course.course_name }}</p>
+        <p><strong>กลุ่ม:</strong> {{ section.section_number }}</p>
+        <p><strong>ภาคเรียน:</strong> {{ section.semester }}</p>
+        <p><strong>อาจารย์:</strong> {{ section.teacher.get_full_name|default:section.teacher.username|default:"ยังไม่ได้กำหนด" }}</p>
+        <p><strong>จำนวนนักศึกษา:</strong> {{ section.enrolled_count }}/{{ section.capacity }}</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn" style="background: #dc3545; color: white;">ยืนยันการลบ</button>
+            <a href="{% url 'academic:section_list' %}" class="btn btn-secondary">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

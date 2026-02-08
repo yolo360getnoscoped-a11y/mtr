@@ -1,0 +1,222 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}รายงานการเข้าเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.btn {
+    padding: 0.75rem 2rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    display: inline-block;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-primary {
+    background-color: #0066cc;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0052a3;
+}
+
+.btn-info {
+    background-color: #0099ff;
+    color: white;
+}
+
+.btn-info:hover {
+    background-color: #0088e6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>รายงานการเข้าเรียน</h1>
+</div>
+
+<div class="form-container">
+    <form method="get" class="form">
+        <div class="form-group">
+            <label for="section_id">กลุ่มเรียน</label>
+            <select id="section_id" name="section_id" required>
+                <option value="">เลือกกลุ่มเรียน</option>
+                {% for section in sections %}
+                <option value="{{ section.id }}" {% if selected_section == section.id|stringformat:"s" %}selected{% endif %}>
+                    {{ section }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="start_date">วันที่เริ่มต้น</label>
+            <input type="date" id="start_date" name="start_date" value="{{ start_date }}">
+        </div>
+        <div class="form-group">
+            <label for="end_date">วันที่สิ้นสุด</label>
+            <input type="date" id="end_date" name="end_date" value="{{ end_date }}">
+        </div>
+        <button type="submit" class="btn btn-primary">ดูรายงาน</button>
+    </form>
+</div>
+
+{% if section %}
+<div class="report-container">
+    <h2>รายงาน: {{ section }}</h2>
+    
+    {% if user.is_student %}
+        <!-- Student View -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>เซสชันทั้งหมด</h3>
+                <div class="number">{{ total_sessions }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>มา</h3>
+                <div class="number" style="color: #28a745;">{{ present_count }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>สาย</h3>
+                <div class="number" style="color: #ffc107;">{{ late_count }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>ขาด</h3>
+                <div class="number" style="color: #dc3545;">{{ absent_count }}</div>
+            </div>
+            <div class="stat-card">
+                <h3>อัตราการเข้าเรียน</h3>
+                <div class="number">{{ attendance_rate|floatformat:1 }}%</div>
+            </div>
+        </div>
+        
+        <h3>รายละเอียดการเข้าเรียน</h3>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>วันที่</th>
+                        <th>เวลา</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record.session.session_date|date:"d/m/Y" }}</td>
+                        <td>{{ record.session.session_time|time:"H:i" }}</td>
+                        <td>{{ record.get_status_display }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3">ยังไม่มีข้อมูล</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <!-- Admin/Teacher View -->
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>นักศึกษา</th>
+                        <th>มา</th>
+                        <th>สาย</th>
+                        <th>ขาด</th>
+                        <th>อัตราการเข้าเรียน</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in student_stats %}
+                    <tr>
+                        <td>{{ stat.student.get_full_name|default:stat.student.username }}</td>
+                        <td>{{ stat.present_count }}</td>
+                        <td>{{ stat.late_count }}</td>
+                        <td>{{ stat.absent_count }}</td>
+                        <td>{{ stat.attendance_rate|floatformat:1 }}%</td>
+                        <td>
+                            <a href="{% url 'attendance:student_detail' section.id stat.student.id %}?{% if start_date %}start_date={{ start_date }}&{% endif %}{% if end_date %}end_date={{ end_date }}{% endif %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">ดูรายละเอียด</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">ยังไม่มีข้อมูล</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>
+
+<div class="action-buttons">
+    <a href="{% if user.is_student %}{% url 'attendance:scan_page' %}{% else %}{% url 'teacher:dashboard' %}{% endif %}" class="btn btn-secondary">กลับ</a>
+    {% if section and not user.is_student %}
+    <a href="{% url 'attendance:report_summary' %}?section_id={{ section.id }}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}" class="btn btn-info">สรุปรายงาน</a>
+    <button onclick="exportReport()" class="btn btn-primary">ส่งออก</button>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{% if section and not user.is_student %}
+<script>
+function exportReport() {
+    // Create a simple CSV export
+    const section = '{{ section }}';
+    const rows = [];
+    rows.push(['นักศึกษา', 'มา', 'สาย', 'ขาด', 'อัตราการเข้าเรียน']);
+    
+    {% for stat in student_stats %}
+    rows.push([
+        '{{ stat.student.get_full_name|default:stat.student.username }}',
+        {{ stat.present_count }},
+        {{ stat.late_count }},
+        {{ stat.absent_count }},
+        '{{ stat.attendance_rate|floatformat:1 }}%'
+    ]);
+    {% endfor %}
+    
+    let csvContent = rows.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'รายงานการเข้าเรียน_' + section.replace(/[^a-zA-Z0-9]/g, '_') + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endif %}
+{% endblock %}
+

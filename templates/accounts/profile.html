@@ -1,0 +1,237 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}ข้อมูลผู้ใช้{% endblock %}
+
+{% block extra_css %}
+<style>
+.profile-page {
+    background-color: #f5f5f5;
+    min-height: calc(100vh - 200px);
+    padding: 2rem 0;
+}
+
+.profile-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.profile-form-container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 3rem;
+    background: #f5f5f5;
+    padding: 2rem;
+}
+
+.profile-form-section {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+}
+
+.profile-form-group {
+    margin-bottom: 1.5rem;
+}
+
+.profile-form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+    font-size: 1rem;
+}
+
+.profile-form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: white;
+}
+
+.profile-form-group input:read-only {
+    background-color: #f8f9fa;
+    cursor: not-allowed;
+}
+
+.profile-image-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.profile-image-circle {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.profile-image-circle img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-image-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 3rem;
+}
+
+.last-login-info {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #ddd;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 968px) {
+    .profile-form-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-image-section {
+        order: -1;
+    }
+    
+    .profile-image-circle {
+        width: 200px;
+        height: 200px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="profile-content">
+        <div class="profile-form-container">
+            <div class="profile-form-section">
+                <div class="profile-form-group">
+                    <label for="full_name">ชื่อ-นามสกุล</label>
+                    <input type="text" id="full_name" value="{{ user.get_full_name|default:user.username }}" readonly>
+                </div>
+                
+                {% if user.is_teacher and profile %}
+                <div class="profile-form-group">
+                    <label for="employee_id">รหัสอาจารย์</label>
+                    <input type="text" id="employee_id" value="{{ profile.employee_id|default:'-' }}" readonly>
+                </div>
+                {% elif user.is_student and profile %}
+                <div class="profile-form-group">
+                    <label for="student_id">รหัสนักศึกษา</label>
+                    <input type="text" id="student_id" value="{{ profile.student_id|default:'-' }}" readonly>
+                </div>
+                {% endif %}
+                
+                {% if user.is_teacher and profile %}
+                <div class="profile-form-group">
+                    <label for="faculty">คณะ</label>
+                    <input type="text" id="faculty" value="{% if profile.teacher_faculty %}{{ profile.teacher_faculty.faculty_name }}{% else %}-{% endif %}" readonly>
+                </div>
+                {% endif %}
+                
+                {% if user.is_student and profile %}
+                <div class="profile-form-group">
+                    <label for="faculty">คณะ</label>
+                    <input type="text" id="faculty" value="{% if profile.student_major and profile.student_major.faculty %}{{ profile.student_major.faculty.faculty_name }}{% else %}-{% endif %}" readonly>
+                </div>
+                <div class="profile-form-group">
+                    <label for="major">สาขา</label>
+                    <input type="text" id="major" value="{% if profile.student_major %}{{ profile.student_major.major_name }}{% else %}-{% endif %}" readonly>
+                </div>
+                {% endif %}
+                
+                {% if user.is_teacher and profile %}
+                <div class="profile-form-group">
+                    <label for="major">สาขา</label>
+                    <input type="text" id="major" value="{% if profile.student_major %}{{ profile.student_major.major_name }}{% else %}-{% endif %}" readonly>
+                </div>
+                {% endif %}
+                
+                {% if user.is_teacher %}
+                <div class="profile-form-group">
+                    <label for="position">ตำแหน่ง</label>
+                    <input type="text" id="position" value="อาจารย์" readonly>
+                </div>
+                {% endif %}
+                
+                <div class="profile-form-group">
+                    <label for="email">อีเมลมหาวิทยาลัย</label>
+                    <input type="email" id="email" value="{{ user.email|default:'-' }}" readonly>
+                </div>
+                
+                <div class="profile-form-group">
+                    <label for="phone">เบอร์โทร</label>
+                    <input type="text" id="phone" value="{{ user.phone|default:'-' }}" readonly>
+                </div>
+                
+                <div class="last-login-info">
+                    {% if user.last_login %}
+                        เข้าสู่ระบบครั้งล่าสุด: {{ user.last_login|date:"d F Y, H:i" }} น.
+                    {% else %}
+                        เข้าสู่ระบบครั้งล่าสุด: - 
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="profile-image-section">
+                <div class="profile-image-circle">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="Profile Picture">
+                    {% else %}
+                        <div class="profile-image-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <a href="{% url 'accounts:edit_profile' %}" class="btn-edit-profile">
+                    <i class="fas fa-edit"></i> แก้ไขโปรไฟล์
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn-edit-profile {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: #ffc107;
+    color: #333;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.3s;
+    margin-top: 1rem;
+}
+
+.btn-edit-profile:hover {
+    background-color: #ffb300;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(255,193,7,0.4);
+}
+
+.btn-edit-profile i {
+    margin-right: 0.5rem;
+}
+</style>
+{% endblock %}

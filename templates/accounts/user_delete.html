@@ -1,0 +1,31 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}ลบผู้ใช้{% endblock %}
+
+{% block content %}
+<div class="form-container" style="max-width: 600px;">
+    <h1>ยืนยันการลบผู้ใช้</h1>
+    
+    <div class="alert" style="background: #f8d7da; color: #721c24; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+        <strong>คำเตือน:</strong> คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ <strong>{{ user.username }}</strong>?
+        <br>การดำเนินการนี้ไม่สามารถย้อนกลับได้
+    </div>
+    
+    <div class="info-box" style="margin-bottom: 2rem;">
+        <h3>ข้อมูลผู้ใช้ที่จะถูกลบ:</h3>
+        <p><strong>ชื่อผู้ใช้:</strong> {{ user.username }}</p>
+        <p><strong>ชื่อ-นามสกุล:</strong> {{ user.get_full_name|default:"-" }}</p>
+        <p><strong>อีเมล:</strong> {{ user.email }}</p>
+        <p><strong>บทบาท:</strong> {{ user.get_role_display }}</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn" style="background: #dc3545; color: white;">ยืนยันการลบ</button>
+            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">ยกเลิก</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+

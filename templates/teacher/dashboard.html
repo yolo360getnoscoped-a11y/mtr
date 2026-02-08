@@ -1,0 +1,64 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}รายวิชาที่สอน - อาจารย์{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/teacher_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">รายวิชาที่สอน</h1>
+
+<div class="table-wrapper">
+    <table class="courses-table">
+        <thead>
+            <tr>
+                <th>ลำดับ</th>
+                <th>ชื่อวิชา</th>
+                <th>จำนวนนักศึกษา</th>
+                <th>เช็คชื่อ</th>
+                <th>ดูประวัติ</th>
+                <th>แก้ไข</th>
+                <th>ลบ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for section in sections %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ section.course.course_name }}</td>
+                <td>{{ section.enrolled_count }} คน</td>
+                <td>
+                    <a href="{% url 'attendance:create_qr' section.id %}" class="btn-check">
+                        <i class="fas fa-plus"></i> เช็คชื่อ
+                    </a>
+                </td>
+                <td>
+                    <a href="{% url 'attendance:report' %}?section_id={{ section.id }}" class="btn-view">
+                        ดูประวัติ
+                    </a>
+                </td>
+                <td>
+                    <a href="{% url 'academic:manage_enrollment' section.id %}" class="btn-edit">
+                        แก้ไข
+                    </a>
+                </td>
+                <td>-</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center">ยังไม่มีรายวิชาที่สอน</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="add-button-container">
+    <button class="btn-add" onclick="alert('กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มรายวิชา')">
+        <i class="fas fa-plus"></i> เพิ่มข้อมูล
+    </button>
+</div>
+{% endblock %}
+

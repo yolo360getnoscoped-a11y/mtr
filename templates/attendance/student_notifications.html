@@ -1,0 +1,225 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}การแจ้งเตือน{% endblock %}
+
+{% block extra_css %}
+<style>
+.notifications-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.section-card {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section-card h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.notifications-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.notifications-table th,
+.notifications-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.notifications-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+.notifications-table tr:hover {
+    background-color: #f8f9fa;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.no-data {
+    text-align: center;
+    color: #999;
+    padding: 2rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.info-item i {
+    margin-right: 0.75rem;
+    color: #0066cc;
+}
+
+.info-item-content {
+    flex: 1;
+}
+
+.info-item-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notifications-container">
+    <h1 class="page-title">การแจ้งเตือน</h1>
+
+    <!-- Leave Requests Status -->
+    <div class="section-card">
+        <h2>สถานะการขอลา</h2>
+        {% if leave_requests %}
+        <div class="table-wrapper">
+            <table class="notifications-table">
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>วิชา</th>
+                        <th>วันที่ลา</th>
+                        <th>ประเภทการลา</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave in leave_requests %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ leave.section.course.course_name }}</td>
+                        <td>{{ leave.leave_date|date:"d/m/Y" }}</td>
+                        <td>{{ leave.get_leave_type_display }}</td>
+                        <td>
+                            <span class="status-badge {{ leave.get_status_class }}">
+                                {{ leave.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">ยังไม่มีการขอลา</p>
+        {% endif %}
+    </div>
+
+    <!-- Upcoming Sessions -->
+    <div class="section-card">
+        <h2>เซสชันการเช็คชื่อที่กำลังจะมาถึง (7 วันถัดไป)</h2>
+        {% if upcoming_sessions %}
+        <div class="table-wrapper">
+            <table class="notifications-table">
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>วิชา</th>
+                        <th>วันที่</th>
+                        <th>เวลา</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in upcoming_sessions %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ session.section.course.course_name }}</td>
+                        <td>{{ session.session_date|date:"d/m/Y" }}</td>
+                        <td>{{ session.session_time|time:"H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">ไม่มีเซสชันการเช็คชื่อใน 7 วันถัดไป</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Attendance Records -->
+    <div class="section-card">
+        <h2>ประวัติการเข้าเรียนล่าสุด</h2>
+        {% if recent_records %}
+        <div class="table-wrapper">
+            <table class="notifications-table">
+                <thead>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th>วิชา</th>
+                        <th>วันที่</th>
+                        <th>เวลา</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in recent_records %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ record.session.section.course.course_name }}</td>
+                        <td>{{ record.session.session_date|date:"d/m/Y" }}</td>
+                        <td>{{ record.session.session_time|time:"H:i" }}</td>
+                        <td>
+                            {% if record.status == 'present' %}
+                                <span style="color: #28a745;">{{ record.get_status_display }}</span>
+                            {% elif record.status == 'late' %}
+                                <span style="color: #ffc107;">{{ record.get_status_display }}</span>
+                            {% elif record.status == 'absent' %}
+                                <span style="color: #dc3545;">{{ record.get_status_display }}</span>
+                            {% else %}
+                                {{ record.get_status_display }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">ยังไม่มีประวัติการเข้าเรียน</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

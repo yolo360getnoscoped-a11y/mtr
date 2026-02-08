@@ -1,0 +1,261 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}เช็คชื่อสำเร็จ{% endblock %}
+
+{% block extra_css %}
+<style>
+    .success-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    
+    .success-content {
+        background: #f5f5f5;
+        border: 2px solid #0066cc;
+        border-radius: 8px;
+        padding: 3rem 2rem;
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .success-title {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 2rem;
+    }
+    
+    .success-info {
+        font-size: 1.1rem;
+        color: #333;
+        line-height: 2;
+        margin: 1rem 0;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        border-radius: 20px;
+        font-weight: bold;
+        margin-top: 0.5rem;
+    }
+    
+    .status-present {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .status-late {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-absent {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .proof-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+    
+    .proof-upload {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .file-input-label {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: #0066cc;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    
+    .file-input-label:hover {
+        background: #0052a3;
+    }
+    
+    .proof-preview {
+        margin-top: 1rem;
+        max-width: 300px;
+    }
+    
+    .proof-preview img {
+        max-width: 100%;
+        border-radius: 8px;
+        border: 2px solid #ddd;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    
+    .btn-history {
+        background: #0066cc;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: background 0.3s;
+    }
+    
+    .btn-history:hover {
+        background: #0052a3;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-home {
+        background: #0066cc;
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: background 0.3s;
+    }
+    
+    .btn-home:hover {
+        background: #0052a3;
+        color: white;
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="success-container">
+    <div class="success-content">
+        <div class="success-title">เช็คชื่อสำเร็จ</div>
+        
+        <div class="success-info">
+            <div><strong>รายวิชา:</strong> {{ session.section.course.course_name }}</div>
+            <div><strong>รหัสนักศึกษา:</strong> {{ student_id }}</div>
+            <div><strong>เวลาเช็ค:</strong> {{ check_time|date:"H:i" }} น. ({{ check_time|date:"d/m/Y" }})</div>
+            <div>
+                <strong>สถานะ:</strong> 
+                <span class="status-badge status-{{ record.status }}">{{ status_display }}</span>
+            </div>
+        </div>
+        
+        {% if not record.proof_image %}
+        <div class="proof-section">
+            <h3 style="margin-bottom: 1rem;">หลักฐานการเข้าเรียน</h3>
+            <div class="proof-upload">
+                <form id="proof-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="file-input-wrapper">
+                        <input type="file" id="proof-image-input" name="proof_image" accept="image/*" />
+                        <label for="proof-image-input" class="file-input-label">
+                            <i class="fas fa-plus"></i> แนบไฟล์
+                        </label>
+                    </div>
+                </form>
+                <div id="proof-preview" class="proof-preview" style="display: none;">
+                    <img id="preview-img" src="" alt="Preview" />
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="proof-section">
+            <h3 style="margin-bottom: 1rem;">หลักฐานการเข้าเรียน</h3>
+            <div class="proof-preview">
+                <img src="{{ record.proof_image.url }}" alt="หลักฐานการเข้าเรียน" />
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="action-buttons">
+        <a href="{% url 'attendance:student_notifications' %}" class="btn-history">ดูประวัติ</a>
+        <a href="{% url 'attendance:student_notifications' %}" class="btn-home">กลับหน้าหลัก</a>
+    </div>
+</div>
+
+<script>
+    const proofInput = document.getElementById('proof-image-input');
+    const proofForm = document.getElementById('proof-form');
+    const previewDiv = document.getElementById('proof-preview');
+    const previewImg = document.getElementById('preview-img');
+    
+    if (proofInput) {
+        proofInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewDiv.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                
+                // Upload file
+                const formData = new FormData(proofForm);
+                formData.append('proof_image', file);
+                
+                // Get CSRF token
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+                
+                fetch('/attendance/upload-proof/{{ record.id }}/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('อัพโหลดหลักฐานสำเร็จ');
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('เกิดข้อผิดพลาดในการอัพโหลด');
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}
+

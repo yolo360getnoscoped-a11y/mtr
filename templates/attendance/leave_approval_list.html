@@ -1,0 +1,196 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}แจ้งเตือน อนุมัติการลา{% endblock %}
+
+{% block content %}
+<h1 class="page-title">แจ้งเตือน อนุมัติการลา</h1>
+
+<div class="filter-section">
+    <form method="get" class="filter-form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <label>
+            <select name="status" onchange="this.form.submit()">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>ทั้งหมด</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>รออนุมัติ</option>
+                <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>อนุมัติ</option>
+                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>ไม่อนุมัติ</option>
+            </select>
+        </label>
+        {% if user.is_admin %}
+        <label>
+            <select name="section_id" onchange="this.form.submit()">
+                <option value="">ทั้งหมด (รายวิชา)</option>
+                {% for section in sections %}
+                <option value="{{ section.id }}" {% if selected_section|stringformat:"s" == section.id|stringformat:"s" %}selected{% endif %}>
+                    {{ section.course.course_code }} - {{ section.course.course_name }} (กลุ่ม {{ section.section_number }})
+                </option>
+                {% endfor %}
+            </select>
+        </label>
+        {% endif %}
+    </form>
+</div>
+
+<div class="table-wrapper">
+    <table class="leave-approval-table">
+        <thead>
+            <tr>
+                <th>ลำดับ</th>
+                <th>ชื่อนักศึกษา</th>
+                <th>รหัสนักศึกษา</th>
+                <th>สาขา</th>
+                <th>วิชา</th>
+                <th>รหัสวิชา</th>
+                <th>วันที่</th>
+                <th>สถานะ</th>
+                <th>จัดการ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for leave in leave_requests %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ leave.student.get_full_name|default:leave.student.username }}</td>
+                <td>
+                    {% if leave.student.student_profile %}
+                        {{ leave.student.student_profile.student_id }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if leave.student.student_profile %}
+                        {{ leave.student.student_profile.major|default:"-" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ leave.section.course.course_name }}</td>
+                <td>{{ leave.section.course.course_code }}</td>
+                <td>{{ leave.leave_date|date:"d/m/y" }}</td>
+                <td>
+                    <span class="status-badge {{ leave.get_status_class }}">
+                        {{ leave.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'attendance:leave_approval_detail' leave.id %}" class="btn-view-detail">
+                        ดูรายละเอียด
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">ยังไม่มีการแจ้งลา</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="action-buttons">
+    <a href="{% url 'teacher:dashboard' %}" class="btn btn-secondary">หน้าหลัก</a>
+</div>
+
+<style>
+.filter-section {
+    margin-bottom: 1.5rem;
+}
+
+.filter-form select {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.leave-approval-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.leave-approval-table thead {
+    background-color: #e7f3ff;
+}
+
+.leave-approval-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #0066cc;
+}
+
+.leave-approval-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.leave-approval-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.btn-view-detail {
+    padding: 0.5rem 1rem;
+    background-color: #0099ff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.btn-view-detail:hover {
+    background-color: #0088e6;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+</style>
+{% endblock %}
+
